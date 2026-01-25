@@ -1,0 +1,25 @@
+@import "tailwindcss";
+/* Style cho nội dung bài đọc */
+.passage-content u {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  color: inherit;
+}
+
+.passage-content mark {
+  background-color: #fef08a; /* Màu vàng dạ quang nhạt */
+  color: #1a1a1a;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 500;
+}
+
+mark {
+  background-color: #fef08a; /* Vàng nhạt */
+  padding: 0 2px;
+  border-radius: 4px;
+}
+u {
+  text-decoration-color: #6366f1; /* Tím indigo */
+  text-underline-offset: 4px;
+}
