@@ -20,82 +20,100 @@ import AdminDashboard from "./AdminDashboard";
 import ExamSubmissions from "./ExamSubmissions";
 import GradeSubmission from "./GradeSubmission";
 import SubmissionList from "./SubmissionList";
+import Footer from "./components/Footer";
+import LogoDesignLab from "./components/LogoDesignLab";
+
+// Component Layout chung để tái sử dụng Navbar và Footer
+const MainLayout = ({ children }) => (
+  <div className="min-h-screen flex flex-col bg-slate-50/50">
+    <Navbar />
+    <div className="content flex-grow">{children}</div>
+    <Footer />
+  </div>
+);
 
 function App() {
   return (
     <AuthProvider>
       <BrowserRouter>
-        <Navbar />
-        <div className="content">
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+        <Routes>
+          {/* TRANG RIÊNG BIỆT: Không có Navbar & Footer */}
+          <Route path="/design-lab" element={<LogoDesignLab />} />
 
-            {/* Mặc định vào login */}
-            <Route path="/" element={<Navigate to="/login" />} />
+          {/* CÁC TRANG CÒN LẠI: Có đầy đủ Navbar & Footer */}
+          <Route
+            path="*"
+            element={
+              <MainLayout>
+                <Routes>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/register" element={<Register />} />
+                  <Route path="/" element={<Navigate to="/login" />} />
 
-            {/* Các trang sau này sẽ thêm ở đây */}
+                  <Route
+                    path="/create-exam"
+                    element={
+                      <ProtectedRoute roleRequired="user">
+                        <CreateExam />
+                      </ProtectedRoute>
+                    }
+                  />
 
-            <Route
-              path="/create-exam"
-              element={
-                <ProtectedRoute roleRequired="user">
-                  <CreateExam />
-                </ProtectedRoute>
-              }
-            />
+                  <Route
+                    path="/exam-list"
+                    element={
+                      <ProtectedRoute roleRequired="member">
+                        <ExamList />
+                      </ProtectedRoute>
+                    }
+                  />
 
-            <Route
-              path="/exam-list"
-              element={
-                <ProtectedRoute roleRequired="member">
-                  <ExamList />
-                </ProtectedRoute>
-              }
-            />
+                  <Route path="/take-exam/:id" element={<TakeExam />} />
 
-            <Route path="/take-exam/:id" element={<TakeExam />} />
+                  <Route
+                    path="/manage-exams"
+                    element={
+                      <ProtectedRoute roleRequired="user">
+                        <ManageExam />
+                      </ProtectedRoute>
+                    }
+                  />
 
-            <Route
-              path="/manage-exams"
-              element={
-                <ProtectedRoute roleRequired="user">
-                  <ManageExam />
-                </ProtectedRoute>
-              }
-            />
+                  <Route
+                    path="/student-dashboard"
+                    element={<StudentDashboard />}
+                  />
+                  <Route
+                    path="/teacher-dashboard"
+                    element={<TeacherDashboard />}
+                  />
+                  <Route path="/grade/:submissionId" element={<GradeExam />} />
+                  <Route path="/review-result/:id" element={<ReviewResult />} />
+                  <Route path="/view-results" element={<ViewResults />} />
+                  <Route path="/edit-exam/:id" element={<EditExam />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
-            <Route path="/student-dashboard" element={<StudentDashboard />} />
+                  <Route
+                    path="/exam-submissions/:examId"
+                    element={<ExamSubmissions />}
+                  />
 
-            <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+                  <Route
+                    path="/grade-submission/:submissionId"
+                    element={<GradeSubmission />}
+                  />
 
-            <Route path="/grade/:submissionId" element={<GradeExam />} />
-
-            <Route path="/review-result/:id" element={<ReviewResult />} />
-
-            <Route path="/view-results" element={<ViewResults />} />
-
-            <Route path="/edit-exam/:id" element={<EditExam />} />
-
-            <Route path="/leaderboard" element={<Leaderboard />} />
-
-            <Route path="/profile" element={<Profile />} />
-
-            <Route path="/admin-dashboard" element={<AdminDashboard />} />
-
-            <Route
-              path="/exam-submissions/:examId"
-              element={<ExamSubmissions />}
-            />
-
-            <Route
-              path="/grade-submission/:submissionId"
-              element={<GradeSubmission />}
-            />
-
-            <Route path="/submissions/:examId" element={<SubmissionList />} />
-          </Routes>
-        </div>
+                  <Route
+                    path="/submissions/:examId"
+                    element={<SubmissionList />}
+                  />
+                </Routes>
+              </MainLayout>
+            }
+          />
+        </Routes>
       </BrowserRouter>
     </AuthProvider>
   );
