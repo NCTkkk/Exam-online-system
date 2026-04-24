@@ -2,6 +2,12 @@ const Submission = require("../models/Submission");
 const Exam = require("../models/Exam");
 
 const findQuestionInExam = (exam, questionId) => {
+  // Nếu đề thi bị xóa (exam null) hoặc không có câu hỏi, trả về null luôn
+  if (!exam || !exam.questions) return null;
+
+  // Đảm bảo questionId tồn tại
+  if (!questionId) return null;
+
   let questionData = exam.questions.find(
     (q) => q._id.toString() === questionId.toString(),
   );
@@ -152,10 +158,17 @@ const getSubmissionDetail = async (req, res) => {
     if (!submission) return res.status(404).json("Không tìm thấy bài làm");
 
     const fullData = submission.toObject();
-    fullData.answers = fullData.answers.map((ans) => ({
-      ...ans,
-      questionId: findQuestionInExam(fullData.exam, ans.questionId),
-    }));
+    // KIỂM TRA: Nếu đề thi vẫn tồn tại mới thực hiện map câu hỏi
+    if (fullData.exam && fullData.exam.questions) {
+      fullData.answers = fullData.answers.map((ans) => ({
+        ...ans,
+        questionId: findQuestionInExam(fullData.exam, ans.questionId),
+      }));
+    } else {
+      // Nếu đề đã xóa, ta giữ nguyên mảng answers (hoặc xử lý tối giản)
+      // để tránh lỗi hàm findQuestionInExam
+      fullData.exam = null;
+    }
 
     res.json(fullData);
   } catch (error) {

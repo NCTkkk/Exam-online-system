@@ -13,6 +13,7 @@ import {
 const ReviewResult = () => {
   const { id } = useParams();
   const [result, setResult] = useState(null);
+  const [isExamDeleted, setIsExamDeleted] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -23,9 +24,21 @@ const ReviewResult = () => {
           `http://localhost:5000/api/submissions/detail/${id}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
+
+        // kiểm tra đề thi còn không
+        if (!res.data.exam) {
+          setIsExamDeleted(true);
+        }
+
         setResult(res.data);
       } catch (err) {
-        alert("Không thể tải chi tiết bài làm");
+        // alert("Không thể tải chi tiết bài làm");
+        console.error("Lỗi fetch:", err);
+        // Nếu lỗi 404 (không tìm thấy submission), ta cũng có thể coi là dữ liệu lỗi
+        if (err.response?.status === 404) {
+          setIsExamDeleted(true);
+          setResult({}); // Set object rỗng để thoát khỏi màn hình Loading
+        }
       }
     };
     fetchResult();
@@ -50,6 +63,36 @@ const ReviewResult = () => {
         </div>
       </div>
     );
+
+  // Hiển thị khi đề bị xóa
+  if (isExamDeleted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-6 text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="max-w-md"
+        >
+          <div className="w-24 h-24 bg-red-50 text-red-500 rounded-full flex items-center justify-center text-5xl mb-6 mx-auto shadow-inner">
+            🚫
+          </div>
+          <h2 className="text-3xl font-black text-slate-800 mb-4 uppercase tracking-tight">
+            Đề thi không còn tồn tại
+          </h2>
+          <p className="text-slate-500 mb-8 leading-relaxed font-medium">
+            Rất tiếc, nội dung đề thi này đã bị giáo viên gỡ bỏ hoặc xóa khỏi hệ
+            thống. Bạn chỉ có thể xem lại tổng điểm tại danh sách kết quả.
+          </p>
+          <button
+            onClick={() => navigate(-1)}
+            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-600 transition-all duration-300 shadow-xl shadow-slate-200"
+          >
+            ← Quay lại ngay
+          </button>
+        </motion.div>
+      </div>
+    );
+  }
 
   let cumulativeQuestionNumber = 0;
 

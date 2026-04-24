@@ -22,6 +22,8 @@ import GradeSubmission from "./GradeSubmission";
 import SubmissionList from "./SubmissionList";
 import Footer from "./components/Footer";
 import LogoDesignLab from "./components/LogoDesignLab";
+import ActivityLog from "./ActivityLog";
+import UISettings from "./UISettings";
 
 // Component Layout chung để tái sử dụng Navbar và Footer
 const MainLayout = ({ children }) => (
@@ -94,6 +96,11 @@ function App() {
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
+
+                  <Route path="/activity-log" element={<ActivityLog />} />
+
+                  <Route path="/activity-log" element={<ActivityLog />} />
+                  <Route path="/ui-settings" element={<UISettings />} />
 
                   <Route
                     path="/exam-submissions/:examId"
