@@ -17,6 +17,9 @@ const Navbar = () => {
   const homePath =
     user.role === "member" ? "/student-dashboard" : "/teacher-dashboard";
 
+  const activityLogPath =
+    user?.role === "member" ? "/activity-log" : "/teacher-activity";
+
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100 p-4 mb-6 flex justify-between items-center px-10 sticky top-0 z-50">
       <div className="flex gap-10 items-center">
@@ -146,7 +149,7 @@ const Navbar = () => {
               <hr className="my-1 border-gray-50" />
 
               <Link
-                to="/activity-log"
+                to={activityLogPath}
                 className="block px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-gray-50 hover:text-indigo-600 transition"
                 onClick={() => setIsMenuOpen(false)}
               >

@@ -24,6 +24,7 @@ import Footer from "./components/Footer";
 import LogoDesignLab from "./components/LogoDesignLab";
 import ActivityLog from "./ActivityLog";
 import UISettings from "./UISettings";
+import ActivityLogTeacher from "./ActivityLogTeacher";
 
 // Component Layout chung để tái sử dụng Navbar và Footer
 const MainLayout = ({ children }) => (
@@ -89,6 +90,25 @@ function App() {
                     path="/teacher-dashboard"
                     element={<TeacherDashboard />}
                   />
+
+                  <Route
+                    path="/activity-log"
+                    element={
+                      <ProtectedRoute roleRequired="member">
+                        <ActivityLog />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/teacher-activity"
+                    element={
+                      <ProtectedRoute roleRequired="user">
+                        <ActivityLogTeacher />
+                      </ProtectedRoute>
+                    }
+                  />
+
                   <Route path="/grade/:submissionId" element={<GradeExam />} />
                   <Route path="/review-result/:id" element={<ReviewResult />} />
                   <Route path="/view-results" element={<ViewResults />} />

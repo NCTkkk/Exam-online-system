@@ -176,6 +176,59 @@ const getSubmissionDetail = async (req, res) => {
   }
 };
 
+const getActivityLog = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+
+    // 1. Lấy 10 bài nộp mới nhất của các đề thi do giáo viên này tạo
+    // Chúng ta cần tìm các Exam của giáo viên này trước
+    const myExams = await Exam.find({ author: teacherId }).select("_id title");
+    const examIds = myExams.map((e) => e._id);
+
+    const latestSubmissions = await Submission.find({ exam: { $in: examIds } })
+      .populate("student", "name")
+      .populate("exam", "title")
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    // 2. Lấy 10 đề thi vừa được cập nhật/tạo mới của giáo viên
+    const latestExamActions = await Exam.find({ author: teacherId })
+      .sort({ updatedAt: -1 })
+      .limit(10);
+
+    // 3. Trộn (Merge) và định dạng lại để Frontend dễ hiển thị
+    const logs = [
+      ...latestSubmissions.map((s) => ({
+        id: s._id,
+        // examId: s.exam?._id,
+        type: "STUDENT_SUBMIT",
+        title: `${s.student?.name || "Ẩn danh"} đã nộp bài`,
+        desc: `Đề thi: ${s.exam?.title || "Đề đã xóa"}`,
+        time: s.createdAt,
+        status: s.status === "graded" ? "success" : "warning",
+      })),
+      ...latestExamActions.map((e) => ({
+        id: e._id,
+        // examId: e._id,
+        type: "TEACHER_ACTION",
+        title: `Bạn đã cập nhật đề thi`,
+        desc: `Nội dung: ${e.title}`,
+        time: e.updatedAt,
+        status: "info",
+      })),
+    ];
+
+    // Sắp xếp tất cả theo thời gian mới nhất
+    logs.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    res.json(logs.slice(0, 20)); // Trả về 20 hoạt động gần nhất
+  } catch (error) {
+    res.status(500).json("Lỗi server khi lấy nhật ký");
+  }
+};
+
+module.exports = { getActivityLog };
+
 module.exports = {
   submitExam,
   getLeaderboard,
@@ -184,4 +237,5 @@ module.exports = {
   getSubmissionsByExam,
   getSubmissionDetail,
   getReview,
+  getActivityLog,
 };

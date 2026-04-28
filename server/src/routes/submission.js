@@ -8,9 +8,15 @@ router.post("/submit", verifyToken, submission.submitExam);
 // 2. Lấy bảng xếp hạng (ĐÃ CẬP NHẬT LOGIC THỜI GIAN)
 router.get("/leaderboard/:examId", submission.getLeaderboard);
 
-// --- CÁC ROUTE KHÁC GIỮ NGUYÊN ---
-
 router.get("/my-results", verifyToken, submission.getMyResults);
+
+// 4. Lấy chi tiết bài nộp
+router.get(
+  "/teacher/activity-log",
+  verifyToken,
+  isTeacher,
+  submission.getActivityLog, // Tên hàm bạn vừa thêm ở trên
+);
 
 router.put(
   "/grade/:submissionId",
