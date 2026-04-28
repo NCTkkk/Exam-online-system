@@ -41,3 +41,12 @@ u {
 .dark u {
   text-decoration-color: #818cf8; /* Indigo sáng hơn một chút cho mode tối */
 }
+
+/* Ẩn thanh cuộn cho Sidebar câu hỏi */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

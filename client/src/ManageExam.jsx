@@ -11,10 +11,12 @@ import {
   HiOutlinePencilSquare,
   HiOutlineTrash,
   HiOutlineCheckBadge,
+  HiOutlineMagnifyingGlass,
 } from "react-icons/hi2";
 
 const ManageExams = () => {
   const [exams, setExams] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,6 +29,31 @@ const ManageExams = () => {
     };
     fetchMyExams();
   }, []);
+
+  // const filteredExams = exams.filter((exam) =>
+  //   exam.title.toLowerCase().includes(searchTerm.toLocaleLowerCase()),
+  // );
+
+  const filteredExams = React.useMemo(() => {
+    if (!searchTerm.trim()) return exams;
+
+    const search = searchTerm.toLowerCase();
+
+    return exams
+      .filter((exam) => exam.title.toLowerCase().includes(search))
+      .sort((a, b) => {
+        const titleA = a.title.toLowerCase();
+        const titleB = b.title.toLowerCase();
+
+        const indexA = titleA.indexOf(search);
+        const indexB = titleB.indexOf(search);
+
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        return titleA.length - titleB.length;
+      });
+  }, [exams, searchTerm]);
 
   const handleDelete = async (id) => {
     if (
@@ -70,10 +97,32 @@ const ManageExams = () => {
           </motion.button>
         </div>
 
-        {/* GRID LIST */}
+        {/* 3. SEARCH BAR SECTION */}
+        <div className="relative mb-8">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
+            <HiOutlineMagnifyingGlass size={22} strokeWidth={2.5} />
+          </div>
+          <input
+            type="text"
+            placeholder="Tìm kiếm tên đề thi..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-white border-none ring-1 ring-slate-200 focus:ring-2 focus:ring-indigo-500 py-4 pl-12 pr-4 rounded-2xl shadow-sm font-medium text-slate-700 transition-all outline-none"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute inset-y-0 right-4 text-xs font-bold text-slate-400 hover:text-slate-600 uppercase"
+            >
+              Xóa
+            </button>
+          )}
+        </div>
+
+        {/* GRID LIST - Sử dụng filteredExams để hiển thị */}
         <div className="grid grid-cols-1 gap-6">
-          {exams.length > 0 ? (
-            exams.map((examItem, index) => (
+          {filteredExams.length > 0 ? (
+            filteredExams.map((examItem, index) => (
               <motion.div
                 key={examItem._id}
                 initial={{ opacity: 0, y: 20 }}
@@ -143,14 +192,18 @@ const ManageExams = () => {
           ) : (
             <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-slate-200">
               <p className="text-slate-400 font-black text-xl">
-                Bạn chưa có đề thi nào.
+                {searchTerm
+                  ? `Không tìm thấy đề thi nào khớp với "${searchTerm}"`
+                  : "Bạn chưa có đề thi nào."}
               </p>
-              <button
-                onClick={() => navigate("/create-exam")}
-                className="mt-4 text-indigo-600 font-bold hover:underline"
-              >
-                Tạo đề đầu tiên ngay!
-              </button>
+              {!searchTerm && (
+                <button
+                  onClick={() => navigate("/create-exam")}
+                  className="mt-4 text-indigo-600 font-bold hover:underline"
+                >
+                  Tạo đề đầu tiên ngay!
+                </button>
+              )}
             </div>
           )}
         </div>

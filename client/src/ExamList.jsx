@@ -31,9 +31,29 @@ const ExamList = () => {
   }, []);
 
   // Lọc đề thi theo tìm kiếm
-  const filteredExams = exams.filter((exam) =>
-    exam.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  );
+  // const filteredExams = exams.filter((exam) =>
+  //   exam.title.toLowerCase().includes(searchTerm.toLowerCase()),
+  // );
+  const filteredExams = React.useMemo(() => {
+    if (!searchTerm.trim()) return exams;
+
+    const search = searchTerm.toLowerCase();
+
+    return exams
+      .filter((exam) => exam.title.toLowerCase().includes(search))
+      .sort((a, b) => {
+        const titleA = a.title.toLowerCase();
+        const titleB = b.title.toLowerCase();
+
+        const indexA = titleA.indexOf(search);
+        const indexB = titleB.indexOf(search);
+
+        if (indexA !== indexB) {
+          return indexA - indexB;
+        }
+        return titleA.length - titleB.length;
+      });
+  }, [exams, searchTerm]);
 
   return (
     <div className="p-6 md:p-10 bg-[#f8fafc] min-h-screen">
@@ -86,8 +106,11 @@ const ExamList = () => {
                 />
 
                 <div className="p-8 flex-1">
-                  <div className="flex justify-between items-start mb-4">
-                    <h3 className="text-xl font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                  <div className="flex justify-between items-start mb-4 w-full">
+                    <h3
+                      className="text-xl font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate w-full"
+                      title={exam.title} // Hiện đầy đủ tên khi di chuột vào
+                    >
                       {exam.title}
                     </h3>
                   </div>
