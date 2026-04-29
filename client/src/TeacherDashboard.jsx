@@ -8,6 +8,8 @@ import {
   HiOutlineChartPie,
   HiOutlineUsers,
   HiOutlineArrowRight,
+  HiAcademicCap,
+  HiOutlineBookOpen,
 } from "react-icons/hi";
 
 const TeacherDashboard = () => {
@@ -38,8 +40,15 @@ const TeacherDashboard = () => {
           className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10"
         >
           <div>
-            <h1 className="text-4xl font-black text-slate-800 tracking-tight">
-              Khu vực <span className="text-indigo-600">Giáo viên</span>
+            <h1 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <span>
+                Khu vực <span className="text-indigo-600">Giáo viên</span>
+              </span>
+              {/* Icon mũ tốt nghiệp với hiệu ứng nghiêng nhẹ cho sinh động */}
+              <HiOutlineBookOpen
+                className="text-indigo-600 drop-shadow-sm"
+                size={38}
+              />
             </h1>
             <p className="text-slate-500 font-medium mt-2 italic">
               Chúc thầy/cô{" "}

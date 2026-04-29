@@ -9,6 +9,7 @@ import {
   HiOutlineMail,
   HiOutlineSearch,
   HiOutlineFilter,
+  HiShieldCheck,
 } from "react-icons/hi";
 
 const AdminDashboard = () => {
@@ -50,13 +51,32 @@ const AdminDashboard = () => {
   };
 
   // --- LOGIC LỌC DỮ LIỆU ---
-  const filteredUsers = users.filter((u) => {
-    const matchesSearch =
-      u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "all" || u.role === filterRole;
-    return matchesSearch && matchesRole;
-  });
+  const filteredUsers = users
+    .filter((u) => {
+      const searchLower = searchTerm.toLowerCase().trim();
+      const matchesName = u.name.toLowerCase().includes(searchLower);
+      const matchesEmail = u.email.toLowerCase().includes(searchLower);
+      const matchesRole = filterRole === "all" || u.role === filterRole;
+
+      return matchesRole && (matchesName || matchesEmail);
+    })
+    .sort((a, b) => {
+      const searchLower = searchTerm.toLowerCase().trim();
+      if (!searchLower) return 0;
+
+      const aName = a.name.toLowerCase();
+      const bName = b.name.toLowerCase();
+
+      // 1. Ưu tiên những tên bắt đầu bằng từ khóa tìm kiếm (Ví dụ: "u" trong "user2")
+      const aStartsWith = aName.startsWith(searchLower);
+      const bStartsWith = bName.startsWith(searchLower);
+
+      if (aStartsWith && !bStartsWith) return -1;
+      if (!aStartsWith && bStartsWith) return 1;
+
+      // 2. Nếu cả hai đều không bắt đầu bằng từ khóa, giữ nguyên thứ tự hoặc sắp xếp theo bảng chữ cái
+      return aName.localeCompare(bName);
+    });
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -85,12 +105,18 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-[#f8fafc] p-6 md:p-10">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-end md:items-center mb-12 gap-4">
           <div>
-            <h2 className="text-4xl font-black text-slate-800 tracking-tight">
-              Quản trị <span className="text-indigo-600">Hệ thống</span>
+            <h2 className="text-4xl font-black text-slate-800 tracking-tight flex items-center gap-3">
+              <span>
+                Quản trị <span className="text-indigo-600">Hệ thống</span>
+              </span>
+              <HiShieldCheck
+                className="text-indigo-600 drop-shadow-sm"
+                size={36}
+              />
             </h2>
-            <p className="text-slate-500 font-medium">
+            <p className="text-slate-500 font-medium mt-1">
               Tìm kiếm và quản lý quyền truy cập thành viên
             </p>
           </div>
