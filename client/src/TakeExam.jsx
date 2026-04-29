@@ -19,6 +19,7 @@ const TakeExam = () => {
   const [timeLeft, setTimeLeft] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false); // Tránh nộp 2 lần
   const timerRef = useRef();
+  const [warningCount, setWarningCount] = useState(0); // Đếm số lần cảnh báo chuyển tab
 
   // 1. Logic Fetch Data
   useEffect(() => {
@@ -57,6 +58,37 @@ const TakeExam = () => {
     }
     return () => clearInterval(timerRef.current);
   }, [timeLeft, exam, isSubmitting]);
+
+  // 3. Logic lắng nghe sự kiện chuyển Tab
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        // Chỉ tăng biến đếm, không để alert hay navigate ở đây
+        setWarningCount((prev) => prev + 1);
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () =>
+      document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // 4. Logic xử lý khi số lần vi phạm thay đổi (Side Effect)
+  useEffect(() => {
+    if (warningCount === 0) return; // Bỏ qua lần đầu mount
+
+    if (warningCount >= 3) {
+      alert(
+        "BẠN ĐÃ VI PHẠM QUY CHẾ THI QUÁ 3 LẦN! Hệ thống tự động hủy bài thi.",
+      );
+      // Sử dụng replace: true để học sinh không thể nhấn "Back" quay lại trang thi
+      navigate("/exam-list", { replace: true });
+    } else {
+      alert(
+        `Cảnh báo: Bạn không được rời khỏi tab bài làm! (Vi phạm: ${warningCount}/3)`,
+      );
+    }
+  }, [warningCount, navigate]);
 
   const handleAnswerChange = (qId, value) => {
     setAnswers((prev) => ({ ...prev, [qId]: value }));
@@ -152,14 +184,14 @@ const TakeExam = () => {
       </div>
 
       <div className="max-w-7xl mx-auto mt-10 px-4 space-y-12">
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-700 text-sm font-medium"
         >
           <HiOutlineExclamationTriangle size={20} /> Hệ thống đang giám sát.
           Không chuyển tab.
-        </motion.div>
+        </motion.div> */}
 
         {exam.questions.map((q, idx) => {
           // Unique ID check: Ưu tiên dùng _id nếu có, không thì dùng id
@@ -214,6 +246,7 @@ const TakeExam = () => {
                     return (
                       <div
                         key={subId || sIdx}
+                        id={`question-${subId}`}
                         className={`bg-white p-8 rounded-4xl shadow-md border-2 transition-all ${isAnswered ? "border-purple-100" : "border-slate-50"}`}
                       >
                         <div className="flex justify-between items-center mb-4">
@@ -261,6 +294,7 @@ const TakeExam = () => {
           return (
             <div
               key={mainId || idx}
+              id={`question-${mainId}`}
               className="max-w-4xl mx-auto bg-white p-10 rounded-[2.5rem] shadow-xl border border-slate-200 relative overflow-hidden"
             >
               <div
@@ -327,6 +361,83 @@ const TakeExam = () => {
               <HiChevronRight size={24} />
             </span>
           </button>
+        </div>
+      </div>
+
+      {/* SIDEBAR TÌM CÂU HỎI (HỌC SINH) */}
+      <div className="fixed left-8 top-[50%] -translate-y-1/2 z-[100] hidden xl:block animate-in fade-in slide-in-from-left-10 duration-500">
+        <div className="bg-white/90 backdrop-blur-2xl p-5 rounded-[3rem] border border-slate-200 shadow-[0_20px_50px_rgba(79,70,229,0.15)] w-24 flex flex-col items-center gap-6 transition-all hover:border-indigo-300">
+          <div className="relative group w-14">
+            <input
+              type="number"
+              placeholder="#"
+              className="w-14 h-14 bg-slate-100 border-2 border-transparent rounded-2xl text-center text-indigo-600 font-black text-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const targetNum = parseInt(e.target.value);
+                  let targetId = null;
+                  let currentNum = 0;
+
+                  // Sử dụng exam.questions thay vì questions
+                  exam?.questions?.forEach((q) => {
+                    if (q.type === "instruction") return;
+                    if (q.type === "passage_group") {
+                      q.subQuestions?.forEach((sub) => {
+                        currentNum++;
+                        if (currentNum === targetNum)
+                          targetId = sub._id || sub.id;
+                      });
+                    } else {
+                      currentNum++;
+                      if (currentNum === targetNum) targetId = q._id || q.id;
+                    }
+                  });
+
+                  if (targetId) {
+                    const el = document.getElementById(`question-${targetId}`);
+                    if (el) {
+                      el.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+                      e.target.blur();
+                    }
+                  } else {
+                    alert("Không tìm thấy câu số " + targetNum);
+                  }
+                }
+              }}
+            />
+          </div>
+
+          <div className="w-10 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+
+          <div className="flex flex-col items-center">
+            <div className="text-slate-800 font-black text-xl leading-none">
+              {Object.keys(answers).length}
+              <span className="text-slate-300 text-sm ml-0.5">/</span>
+              <span className="text-slate-400 text-sm">
+                {/* Thêm dấu ?. để bảo vệ khi exam chưa load */}
+                {exam?.questions?.reduce(
+                  (acc, q) =>
+                    acc +
+                    (q.type === "passage_group"
+                      ? q.subQuestions?.length || 0
+                      : q.type === "instruction"
+                        ? 0
+                        : 1),
+                  0,
+                )}
+              </span>
+            </div>
+            <span className="text-[8px] text-slate-400 font-black uppercase mt-1">
+              Progress
+            </span>
+
+            <div
+              className={`mt-4 w-2 h-2 rounded-full shadow-lg ${warningCount > 0 ? "bg-red-500 animate-pulse shadow-red-200" : "bg-emerald-500 shadow-emerald-200"}`}
+            ></div>
+          </div>
         </div>
       </div>
     </div>

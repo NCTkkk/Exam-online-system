@@ -1,10 +1,19 @@
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import {
+  HiChevronDown,
+  HiOutlineUser,
+  HiOutlineClock,
+  HiOutlineSwatch,
+  HiOutlineLockClosed,
+  HiOutlineArrowLeftOnRectangle,
+} from "react-icons/hi2";
 
 const Navbar = () => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -15,6 +24,9 @@ const Navbar = () => {
 
   const homePath =
     user.role === "member" ? "/student-dashboard" : "/teacher-dashboard";
+
+  const activityLogPath =
+    user?.role === "member" ? "/activity-log" : "/teacher-activity";
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-100 p-4 mb-6 flex justify-between items-center px-10 sticky top-0 z-50">
@@ -43,32 +55,30 @@ const Navbar = () => {
 
         {/* --- CÁC CHỨC NĂNG THEO ROLE (GIỮ NGUYÊN LOGIC CỦA BẠN) --- */}
         <div className="flex gap-6 border-l pl-8 border-gray-100 items-center">
-          <Link
-            to={homePath}
-            className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
-          >
-            Trang chủ
-          </Link>
-
-          <Link
-            to="/leaderboard"
-            className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
-          >
-            Bảng xếp hạng
-          </Link>
-
           {/* Logic Học sinh (member) */}
           {user.role === "member" && (
             <>
               <Link
+                to={homePath}
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
+              >
+                Trang chủ
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
+              >
+                Bảng xếp hạng
+              </Link>
+              <Link
                 to="/exam-list"
-                className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
               >
                 Làm đề thi
               </Link>
               <Link
                 to="/view-results"
-                className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
               >
                 Kết quả của tôi
               </Link>
@@ -79,14 +89,26 @@ const Navbar = () => {
           {user.role === "user" && (
             <>
               <Link
+                to={homePath}
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
+              >
+                Trang chủ
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
+              >
+                Bảng xếp hạng
+              </Link>
+              <Link
                 to="/manage-exams"
-                className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
               >
                 Quản lý đề
               </Link>
               <Link
                 to="/create-exam"
-                className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
               >
                 Tạo đề mới
               </Link>
@@ -97,9 +119,15 @@ const Navbar = () => {
             <>
               <Link
                 to="/Admin-dashboard"
-                className="text-gray-600 hover:text-indigo-600 font-bold text-sm transition"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
               >
                 Quản trị hệ thống
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="text-gray-600 hover:text-indigo-600 font-bold text-base transition"
+              >
+                Bảng xếp hạng
               </Link>
             </>
           )}
@@ -107,16 +135,104 @@ const Navbar = () => {
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Thông tin User */}
-        <Link
-          to="/profile"
-          className="text-right hidden sm:block hover:opacity-70 transition"
-        >
-          <p className="text-[10px] text-gray-400 font-black uppercase tracking-widest leading-none mb-1">
-            {user.role === "member" ? "Học sinh" : "Giáo viên"}
-          </p>
-          <p className="text-sm font-bold text-slate-700">{user.name} ⚙️</p>
-        </Link>
+        {/* --- KHỐI USER & DROPDOWN MENU --- */}
+        <div className="relative">
+          <div
+            className="flex items-center gap-3 px-3 py-1.5 rounded-2xl hover:bg-slate-100 transition-all duration-200 cursor-pointer group"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+          >
+            {/* 1. Phần Text (Căn phải) */}
+            <div className="text-right hidden sm:block">
+              <p className="text-sm font-extrabold text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors">
+                {user.name}
+              </p>
+              <p
+                className={`text-[10px] font-black uppercase tracking-tighter px-1.5 py-0.5 rounded-md inline-block mt-0.5 ${
+                  user.role === "admin"
+                    ? "bg-red-50 text-red-600"
+                    : user.role === "teacher"
+                      ? "bg-indigo-50 text-indigo-600"
+                      : "bg-emerald-50 text-emerald-600"
+                }`}
+              >
+                {user.role === "member"
+                  ? "Học sinh"
+                  : user.role === "admin"
+                    ? "Quản trị"
+                    : "Giáo viên"}
+              </p>
+            </div>
+
+            {/* 2. Avatar (Điểm nhấn thiết kế) */}
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-bold shadow-sm border-2 border-white">
+                {user.name.charAt(0).toUpperCase()}
+              </div>
+
+              {/* 3. Icon Mũi tên */}
+              <div
+                className={`absolute -bottom-1 -right-1 bg-white rounded-full shadow-sm border border-slate-100 p-0.5 transition-transform duration-300 ${isMenuOpen ? "rotate-180" : ""}`}
+              >
+                <HiChevronDown size={12} className="text-slate-500" />
+              </div>
+            </div>
+          </div>
+
+          {/* Danh mục hiện ra khi click vào Icon/Tên */}
+          {isMenuOpen && (
+            <div className="absolute right-0 mt-3 w-57 bg-white border border-gray-100 rounded-2xl shadow-xl py-2 z-[60] animate-in fade-in zoom-in duration-200 origin-top-right overflow-hidden">
+              {/* Link 1: Trang cá nhân - Không dùng mx-2 để hover full chiều ngang */}
+              <Link
+                to="/profile"
+                className="flex items-center gap-4 px-5 py-1.5 text-sm font-bold text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="text-lg w-6 flex justify-center">👤</span>
+                <span>Trang cá nhân</span>
+              </Link>
+
+              <div className="border-t border-gray-50" />
+
+              {/* Link 2: Nhật ký hoạt động */}
+              <Link
+                to={activityLogPath}
+                className="flex items-center gap-4 px-5 py-1.5 text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="text-lg w-6 flex justify-center">🕒</span>
+                <span>Nhật ký hoạt động</span>
+              </Link>
+
+              {/* Link 3: Thiết lập giao diện */}
+              <Link
+                to="/ui-settings"
+                className="flex items-center gap-4 px-5 py-1.5 text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                <span className="text-lg w-6 flex justify-center">🎨</span>
+                <span>Thiết lập giao diện</span>
+              </Link>
+
+              {/* Mục dự phòng: Sắp ra mắt */}
+              <div className="border-t border-gray-50">
+                <button className="w-full flex items-center gap-4 px-5 py-1.5 text-sm font-semibold text-slate-300 cursor-not-allowed">
+                  <span className="text-lg w-6 flex justify-center opacity-50">
+                    🔒
+                  </span>
+                  <span>Tính năng sắp ra mắt</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Lớp phủ để đóng menu khi click ra ngoài */}
+          {isMenuOpen && (
+            <div
+              className="fixed inset-0 z-[55]"
+              onClick={() => setIsMenuOpen(false)}
+            ></div>
+          )}
+        </div>
 
         <button
           onClick={handleLogout}

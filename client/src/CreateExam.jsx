@@ -13,6 +13,7 @@ import {
   HiOutlineCheckBadge,
   HiOutlinePencilSquare,
 } from "react-icons/hi2";
+import { useNavigate } from "react-router-dom";
 
 const CreateExam = () => {
   const [title, setTitle] = useState("");
@@ -21,6 +22,7 @@ const CreateExam = () => {
   const [previewIdx, setPreviewIdx] = useState(null);
 
   const lastFocusedElement = useRef(null);
+  const navigate = useNavigate();
 
   // Ghi nhận ô nhập liệu cuối cùng để biết apply format vào đâu
   const handleBlur = (e) => {
@@ -145,6 +147,7 @@ const CreateExam = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Đề thi đã được lưu thành công!");
+      navigate("/manage-exams");
     } catch (err) {
       alert("Lỗi: " + (err.response?.data?.message || err.message));
     }
@@ -153,9 +156,9 @@ const CreateExam = () => {
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-40 font-sans text-slate-900">
       {/* HEADER BAR */}
-      <div className="sticky top-0 z-50 bg-white/90 backdrop-blur-md border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
+      <div className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 px-10 py-4 flex flex-col md:flex-row gap-4 items-center justify-between shadow-sm">
         <input
-          className="text-xl font-black outline-none border-b-2 border-transparent focus:border-indigo-600 bg-transparent w-full md:w-1/3 transition-all"
+          className="text-lg font-black outline-none border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 bg-slate-50/50 px-4 py-2 rounded-xl w-full md:w-1/3 transition-all placeholder:text-slate-400 placeholder:font-bold"
           placeholder="NHẬP TÊN ĐỀ THI..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -203,12 +206,113 @@ const CreateExam = () => {
         </div>
       </div>
 
+      {/* SIDEBAR TÌM CÂU HỎI NHANH */}
+      <div className="fixed left-8 top-1/2 -translate-y-1/2 z-[100] hidden xl:block animate-in fade-in slide-in-from-left-10 duration-500">
+        <div className="bg-white/80 backdrop-blur-2xl p-5 rounded-[3rem] border border-slate-200 shadow-[0_20px_50px_rgba(79,70,229,0.15)] w-24 flex flex-col items-center gap-6 transition-all hover:border-indigo-300">
+          {/* NHÃN TIÊU ĐỀ NHỎ */}
+
+          {/* Ô NHẬP SỐ CÂU - FOCUS STYLE */}
+          <div className="relative group w-14">
+            <input
+              type="number"
+              placeholder="#"
+              className="w-14 h-14 bg-slate-100 border-2 border-transparent rounded-2xl text-center text-indigo-600 font-black text-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  const targetNum = parseInt(e.target.value);
+                  if (isNaN(targetNum)) return;
+
+                  let foundElementId = null;
+
+                  // Duyệt qua danh sách câu hỏi để xác định vị trí hiển thị thực tế
+                  // Sửa lại logic trong onKeyDown của Sidebar:
+                  questions.forEach((q, qIdx) => {
+                    const startNum = getQuestionDisplayNum(qIdx);
+
+                    if (q.type === "passage_group") {
+                      const numSubQuestions = q.subQuestions?.length || 0;
+                      const endNum = startNum + numSubQuestions - 1;
+
+                      if (targetNum >= startNum && targetNum <= endNum) {
+                        // Nếu trúng câu hỏi con, dùng ID của câu hỏi con
+                        foundElementId = `question-sub-${targetNum}`;
+                      }
+                    } else {
+                      if (startNum === targetNum) {
+                        foundElementId = `question-${q.id || qIdx}`;
+                      }
+                    }
+                  });
+
+                  if (foundElementId) {
+                    const el = document.getElementById(foundElementId);
+                    if (el) {
+                      // Cuộn màn hình đến câu hỏi đã tìm thấy
+                      el.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                      });
+
+                      // Thêm hiệu ứng highlight (vòng sáng) để người dùng dễ nhận diện
+                      el.classList.add(
+                        "ring-4",
+                        "ring-indigo-400",
+                        "ring-offset-4",
+                        "transition-all",
+                      );
+
+                      // Tự động xóa hiệu ứng sau 2 giây
+                      setTimeout(() => {
+                        el.classList.remove(
+                          "ring-4",
+                          "ring-indigo-400",
+                          "ring-offset-4",
+                        );
+                      }, 2000);
+                    }
+
+                    // Xóa nội dung ô nhập và bỏ focus để hoàn tất thao tác
+                    e.target.value = "";
+                    e.target.blur();
+                  } else {
+                    alert(`Không tìm thấy câu hỏi số ${targetNum}`);
+                  }
+                }
+              }}
+            />
+            <div className="absolute inset-0 rounded-2xl bg-indigo-500/10 scale-0 group-hover:scale-110 transition-transform -z-10"></div>
+          </div>
+
+          {/* ĐƯỜNG KẺ PHÂN CÁCH NGHỆ THUẬT */}
+          <div className="w-10 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
+
+          {/* THỐNG KÊ TỔNG CÂU - MÀU EMERALD */}
+          <div className="flex flex-col items-center group cursor-default">
+            <div className="text-emerald-600 font-black text-2xl leading-none transition-transform group-hover:scale-110">
+              {questions.reduce(
+                (acc, q) =>
+                  acc +
+                  (q.type === "passage_group" ? q.subQuestions.length : 1),
+                0,
+              )}
+            </div>
+            <span className="text-[9px] text-slate-400 font-black uppercase mt-1 tracking-tighter">
+              Total
+            </span>
+
+            {/* Một chấm nhỏ báo hiệu trạng thái hoạt động */}
+            <div className="mt-4 w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+          </div>
+        </div>
+      </div>
+
       <div className="max-w-4xl mx-auto pt-10 px-4">
         <AnimatePresence mode="popLayout">
           {questions.map((q, index) => (
             <motion.div
               key={q.id || index}
               layout
+              id={`question-${q.id || index}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
@@ -380,6 +484,7 @@ const CreateExam = () => {
                       {q.subQuestions.map((sub, subIdx) => (
                         <div
                           key={subIdx}
+                          id={`question-sub-${getQuestionDisplayNum(index, subIdx)}`}
                           className="bg-white p-6 rounded-3xl border border-purple-100 shadow-sm hover:shadow-md transition-shadow"
                         >
                           <div className="flex justify-between items-center mb-4">
