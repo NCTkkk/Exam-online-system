@@ -37,8 +37,10 @@ const GradeExam = () => {
 
         // Nếu đã từng chấm trước đó, load lại điểm cũ từ server (nếu backend có hỗ trợ field này)
         if (res.data.scoreManualDetails) {
-          setItemScores(res.data.scoreManualDetails);
+          setItemScores(res.data.scoreManualDetails || {});
         }
+        console.log("Dữ liệu bài nộp:", res.data);
+        console.log(res.data.scoreManualDetails);
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         alert("Không thể tải bài làm này.");
@@ -258,12 +260,13 @@ const GradeExam = () => {
                               min="0"
                               value={itemScores[sub._id] || ""}
                               className="w-32 p-4 border-2 border-indigo-200 rounded-xl text-center font-black text-2xl text-indigo-700 outline-none focus:border-indigo-500 transition-all"
-                              onChange={(e) =>
+                              onChange={(e) => {
+                                const val = e.target.value;
                                 setItemScores({
                                   ...itemScores,
-                                  [sub._id]: e.target.value,
-                                })
-                              }
+                                  [sub._id]: val === "" ? "" : Number(val),
+                                });
+                              }}
                             />
                             <span className="font-black text-indigo-300 text-xl">
                               / {sub.points}
@@ -329,12 +332,13 @@ const GradeExam = () => {
                         value={itemScores[q._id] || ""}
                         className="w-32 p-4 border-2 border-indigo-200 rounded-xl text-center font-black text-2xl text-indigo-700 outline-none focus:border-indigo-500 transition-all"
                         placeholder="0.0"
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const val = e.target.value;
                           setItemScores({
                             ...itemScores,
-                            [q._id]: e.target.value,
-                          })
-                        }
+                            [q._id]: val === "" ? "" : Number(val),
+                          });
+                        }}
                       />
                       <span className="font-black text-indigo-300 text-xl">
                         / {q.points}

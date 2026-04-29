@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   HiOutlineClock,
   HiOutlineQuestionMarkCircle,
@@ -9,6 +9,8 @@ import {
   HiOutlinePlay,
   HiOutlineUser,
 } from "react-icons/hi";
+import { usePagination } from "./usePagination";
+import Pagination from "./Pagination";
 
 const ExamList = () => {
   const [exams, setExams] = useState([]);
@@ -55,6 +57,15 @@ const ExamList = () => {
       });
   }, [exams, searchTerm]);
 
+  const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
+    filteredExams,
+    6,
+  );
+
+  useEffect(() => {
+    jump(1);
+  }, [searchTerm]);
+
   return (
     <div className="p-6 md:p-10 bg-[#f8fafc] min-h-screen">
       <div className="max-w-7xl mx-auto">
@@ -89,64 +100,83 @@ const ExamList = () => {
         </div>
 
         {/* Grid danh sách đề thi */}
-        {filteredExams.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredExams.map((exam, index) => (
-              <motion.div
-                key={exam._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                whileHover={{ y: -8 }}
-                className="bg-white rounded-4xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-300 flex flex-col"
-              >
-                {/* Phần Top Thẻ (Màu sắc theo thời gian) */}
-                <div
-                  className={`h-3 w-full ${exam.duration > 45 ? "bg-orange-400" : "bg-indigo-500"}`}
-                />
-
-                <div className="p-8 flex-1">
-                  <div className="flex justify-between items-start mb-4 w-full">
-                    <h3
-                      className="text-xl font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate w-full"
-                      title={exam.title} // Hiện đầy đủ tên khi di chuột vào
-                    >
-                      {exam.title}
-                    </h3>
-                  </div>
-
-                  <div className="space-y-3 mb-8">
-                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
-                      <div className="p-2 bg-slate-100 rounded-lg text-indigo-600">
-                        <HiOutlineClock size={18} />
-                      </div>
-                      <span>Thời gian: {exam.duration} phút</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
-                      <div className="p-2 bg-slate-100 rounded-lg text-indigo-600">
-                        <HiOutlineQuestionMarkCircle size={18} />
-                      </div>
-                      <span>Số câu hỏi: {exam.questions?.length || 0} câu</span>
-                    </div>
-
-                    <div className="flex items-center gap-3 text-slate-400 font-bold text-xs uppercase tracking-widest pt-2">
-                      <HiOutlineUser size={16} />
-                      <span>Thầy/Cô: {exam.author?.name || "Hệ thống"}</span>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => navigate(`/take-exam/${exam._id}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+        {/* Grid danh sách đề thi - Dùng currentData thay vì filteredExams */}
+        {currentData.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 mb-10">
+              <AnimatePresence mode="popLayout">
+                {currentData.map((exam, index) => (
+                  <motion.div
+                    key={exam._id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.9 }}
+                    transition={{ duration: 0.2 }}
+                    whileHover={{ y: -8 }}
+                    className="bg-white rounded-4xl overflow-hidden border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-indigo-100 transition-all duration-300 flex flex-col"
                   >
-                    <HiOutlinePlay size={20} />
-                    BẮT ĐẦU THI
-                  </button>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                    <div
+                      className={`h-3 w-full ${exam.duration > 45 ? "bg-orange-400" : "bg-indigo-500"}`}
+                    />
+
+                    <div className="p-8 flex-1">
+                      <div className="flex justify-between items-start mb-4 w-full">
+                        <h3
+                          className="text-xl font-black text-slate-800 leading-tight group-hover:text-indigo-600 transition-colors truncate w-full"
+                          title={exam.title}
+                        >
+                          {exam.title}
+                        </h3>
+                      </div>
+
+                      <div className="space-y-3 mb-8">
+                        <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
+                          <div className="p-2 bg-slate-100 rounded-lg text-indigo-600">
+                            <HiOutlineClock size={18} />
+                          </div>
+                          <span>Thời gian: {exam.duration} phút</span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
+                          <div className="p-2 bg-slate-100 rounded-lg text-indigo-600">
+                            <HiOutlineQuestionMarkCircle size={18} />
+                          </div>
+                          <span>
+                            Số câu hỏi: {exam.questions?.length || 0} câu
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3 text-slate-400 font-bold text-xs uppercase tracking-widest pt-2">
+                          <HiOutlineUser size={16} />
+                          <span>
+                            Thầy/Cô: {exam.author?.name || "Hệ thống"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => navigate(`/take-exam/${exam._id}`)}
+                        className="w-full flex items-center justify-center gap-2 bg-slate-900 text-white py-4 rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+                      >
+                        <HiOutlinePlay size={20} />
+                        BẮT ĐẦU THI
+                      </button>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+
+            {/* --- COMPONENT PHÂN TRANG --- */}
+            <Pagination
+              currentPage={currentPage}
+              maxPage={maxPage}
+              next={next}
+              prev={prev}
+              jump={jump}
+            />
+          </>
         ) : (
           <div className="text-center py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-200">
             <div className="text-6xl mb-4">🔍</div>

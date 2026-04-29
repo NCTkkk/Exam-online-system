@@ -45,6 +45,7 @@ const GradeSubmission = () => {
         alert("Không thể tải bài làm này.");
       }
     };
+
     if (submissionId) fetchDetail();
   }, [submissionId, navigate]);
 
@@ -67,6 +68,7 @@ const GradeSubmission = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Đã lưu điểm và lời phê thành công!");
+
       navigate(-1);
     } catch (err) {
       alert("Lỗi khi lưu điểm");
