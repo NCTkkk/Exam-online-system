@@ -100,7 +100,7 @@ const GradeExam = () => {
       `}</style>
 
       {/* Header chấm điểm - Sticky */}
-      <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4 shadow-sm">
+      <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-30 px-6 py-4 shadow-sm">
         <div className="max-w-5xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-4">
             <button

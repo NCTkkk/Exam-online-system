@@ -41,12 +41,18 @@ const Pagination = ({ currentPage, maxPage, next, prev, jump }) => {
     }
   };
 
+  // Hàm xử lý click để chặn nhảy trang
+  const handleAction = (e, callback) => {
+    e.preventDefault(); // Chặn hành vi nhảy lên đầu trang
+    callback();
+  };
+
   const paginationRange = getPaginationRange();
 
   return (
     <div className="flex items-center justify-center gap-2 mt-8 pb-10">
       <button
-        onClick={prev}
+        onClick={(e) => handleAction(e, prev)}
         disabled={currentPage === 1}
         className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-400 disabled:opacity-20 hover:bg-slate-50 transition-all shadow-sm active:scale-90"
       >
@@ -69,7 +75,7 @@ const Pagination = ({ currentPage, maxPage, next, prev, jump }) => {
           return (
             <button
               key={index}
-              onClick={() => jump(page)}
+              onClick={(e) => handleAction(e, () => jump(page))}
               className={`w-11 h-11 rounded-2xl font-black text-sm transition-all duration-300 ${
                 currentPage === page
                   ? "bg-indigo-600 text-white shadow-lg shadow-indigo-100 scale-110"
@@ -83,7 +89,7 @@ const Pagination = ({ currentPage, maxPage, next, prev, jump }) => {
       </div>
 
       <button
-        onClick={next}
+        onClick={(e) => handleAction(e, next)}
         disabled={currentPage === maxPage}
         className="p-3 rounded-2xl bg-white border border-slate-200 text-slate-600 disabled:opacity-20 hover:bg-slate-50 transition-all shadow-sm active:scale-90"
       >

@@ -13,6 +13,10 @@ export const usePagination = (data, itemsPerPage = 5) => {
   // Tổng số trang (tối thiểu là 1)
   const maxPage = Math.ceil(data.length / itemsPerPage) || 1;
 
+  // useEffect(() => {
+  //   setCurrentPage(1);
+  // }, [data.length]);
+
   const next = () => setCurrentPage((page) => Math.min(page + 1, maxPage));
   const prev = () => setCurrentPage((page) => Math.max(page - 1, 1));
   const jump = (page) => {

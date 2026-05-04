@@ -271,7 +271,10 @@ const TakeExam = () => {
                             >
                               <input
                                 type="radio"
-                                name={subId}
+                                // 1. Đảm bảo name là duy nhất cho nhóm câu hỏi phụ
+                                name={`sub-question-${subId || sIdx}`}
+                                // 2. Chặn trình duyệt "đoán" đáp án cũ
+                                autoComplete="off"
                                 checked={answers[subId] === opt}
                                 onChange={() => handleAnswerChange(subId, opt)}
                                 className="w-5 h-5 text-purple-600"
@@ -314,6 +317,7 @@ const TakeExam = () => {
                 className="text-xl font-bold text-slate-800 mb-8"
                 dangerouslySetInnerHTML={{ __html: q.content }}
               />
+              {/*  */}
               {q.type === "multiple_choice" ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {q.options.map((opt, i) => (
@@ -323,7 +327,10 @@ const TakeExam = () => {
                     >
                       <input
                         type="radio"
-                        name={mainId}
+                        // Đảm bảo name luôn tồn tại và duy nhất, kể cả khi thiếu ID
+                        name={`question-${mainId || idx}`}
+                        // Chặn trình duyệt tự động điền (nguyên nhân gây nhảy đáp án D)
+                        autoComplete="off"
                         checked={answers[mainId] === opt}
                         onChange={() => handleAnswerChange(mainId, opt)}
                         className="w-6 h-6 text-indigo-600"

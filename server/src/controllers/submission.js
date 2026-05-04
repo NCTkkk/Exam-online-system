@@ -95,7 +95,7 @@ const getLeaderboard = async (req, res) => {
 const getMyResults = async (req, res) => {
   try {
     const results = await Submission.find({ student: req.user.id })
-      .populate("exam", "title")
+      .populate("exam", "title subject")
       .sort({ createdAt: -1 });
     res.json(results);
   } catch (err) {
