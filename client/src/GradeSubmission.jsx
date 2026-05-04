@@ -15,6 +15,7 @@ const GradeSubmission = () => {
 
   const [submission, setSubmission] = useState(null);
   const [itemScores, setItemScores] = useState({});
+  const [essayAnswers, setEssayAnswers] = useState({});
   const [feedback, setFeedback] = useState("");
 
   useEffect(() => {
@@ -40,6 +41,9 @@ const GradeSubmission = () => {
         if (res.data.scoreManualDetails) {
           setItemScores(res.data.scoreManualDetails);
         }
+        if (res.data.essayAnswers) {
+          setEssayAnswers(res.data.essayAnswers);
+        }
       } catch (err) {
         console.error("Lỗi khi tải dữ liệu:", err);
         alert("Không thể tải bài làm này.");
@@ -64,6 +68,7 @@ const GradeSubmission = () => {
           scoreManual: totalManual,
           feedback: feedback,
           scoreManualDetails: itemScores, // Đồng bộ lưu chi tiết từng câu
+          essayAnswers: essayAnswers,
         },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -281,6 +286,25 @@ const GradeSubmission = () => {
                         })
                       }
                       className="w-24 p-2 border-2 border-indigo-300 rounded-lg text-center font-black text-indigo-600"
+                    />
+                  </div>
+
+                  {/* đáp án tự luận */}
+                  <div className="mt-4 space-y-2">
+                    <span className="text-xs font-black text-emerald-700 uppercase">
+                      Đáp án mẫu/Nhận xét chi tiết:
+                    </span>
+                    <textarea
+                      value={essayAnswers[q._id] || ""}
+                      onChange={(e) =>
+                        setEssayAnswers({
+                          ...essayAnswers,
+                          [q._id]: e.target.value,
+                        })
+                      }
+                      placeholder="Nhập nội dung đáp án mẫu hoặc sửa lỗi cho học sinh..."
+                      className="w-full p-3 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-sm italic"
+                      rows="2"
                     />
                   </div>
                 </div>

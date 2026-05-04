@@ -10,6 +10,7 @@ import {
   HiOutlineClock,
   HiOutlineSearch, // Thêm icon kính lúp
   HiOutlineFilter,
+  HiOutlineRefresh,
 } from "react-icons/hi";
 import { usePagination } from "./usePagination";
 import Pagination from "./Pagination";
@@ -18,6 +19,11 @@ const ViewResults = () => {
   const [results, setResults] = useState([]);
   const [searchTerm, setSearchTerm] = useState(""); // State để lưu từ khóa tìm kiếm
   const [subjectSearch, setSubjectSearch] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState("all"); // all, graded, pending
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -36,43 +42,43 @@ const ViewResults = () => {
     fetchResults();
   }, []);
 
-  // --- LOGIC LỌC & SẮP XẾP THEO VỊ TRÍ ---
-  // const filteredResults = results
-  //   .filter((res) =>
-  //     (res.exam?.title || "Đề thi không tên")
-  //       .toLowerCase()
-  //       .includes(searchTerm.toLowerCase()),
-  //   )
-  //   .sort((a, b) => {
-  //     const term = searchTerm.toLowerCase();
-  //     const indexA = (a.exam?.title || "Đề thi không tên")
-  //       .toLowerCase()
-  //       .indexOf(term);
-  //     const indexB = (b.exam?.title || "Đề thi không tên")
-  //       .toLowerCase()
-  //       .indexOf(term);
-
-  //     if (indexA !== indexB) return indexA - indexB;
-  //     return new Date(b.createdAt) - new Date(a.createdAt); // Sắp xếp thêm theo ngày nếu cùng vị trí
-  //   });
-
-  // --- LOGIC LỌC & SẮP XẾP ĐỒNG BỘ ---
   const filteredResults = useMemo(() => {
     let resData = [...results];
 
-    // 1. Lọc theo Môn học (Ô nhập văn bản)
+    // 1. Lọc theo Môn học
     if (subjectSearch.trim()) {
       const sSearch = subjectSearch.toLowerCase();
       resData = resData.filter((res) => {
-        // Kiểm tra kỹ cả trong res.exam.subject hoặc res.subject tùy theo schema của bạn
         const subjectName = res.exam?.subject || res.subject || "";
         return subjectName.toLowerCase().includes(sSearch);
       });
     }
 
-    // 2. Lọc theo Tên đề thi & Sắp xếp theo vị trí từ khóa (Logic xịn)
+    // 2. MỚI: Lọc theo Trạng thái (Đã chấm / Chưa chấm)
+    if (statusFilter !== "all") {
+      resData = resData.filter((res) => res.status === statusFilter);
+    }
+
+    // 3. MỚI: Lọc theo Khoảng thời gian
+    if (startDate || endDate) {
+      resData = resData.filter((res) => {
+        const resDate = new Date(res.createdAt);
+        resDate.setHours(0, 0, 0, 0); // Đưa về 0h để so sánh chính xác theo ngày
+
+        const start = startDate ? new Date(startDate) : null;
+        const end = endDate ? new Date(endDate) : null;
+        if (start) start.setHours(0, 0, 0, 0);
+        if (end) end.setHours(0, 0, 0, 0);
+
+        if (start && end) return resDate >= start && resDate <= end;
+        if (start) return resDate >= start;
+        if (end) return resDate <= end;
+        return true;
+      });
+    }
+
+    // 4. Lọc theo Tên đề thi & Sắp xếp (Logic cũ của bạn)
     if (!searchTerm.trim()) {
-      // Nếu không search tên, chỉ sắp xếp theo thời gian mới nhất
       return resData.sort(
         (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
       );
@@ -86,17 +92,12 @@ const ViewResults = () => {
       .sort((a, b) => {
         const titleA = (a.exam?.title || "Đề thi không tên").toLowerCase();
         const titleB = (b.exam?.title || "Đề thi không tên").toLowerCase();
-
         const indexA = titleA.indexOf(term);
         const indexB = titleB.indexOf(term);
-
-        // Ưu tiên vị trí xuất hiện của từ khóa
         if (indexA !== indexB) return indexA - indexB;
-
-        // Nếu cùng vị trí, ưu tiên ngày làm bài mới nhất
         return new Date(b.createdAt) - new Date(a.createdAt);
       });
-  }, [results, searchTerm, subjectSearch]);
+  }, [results, searchTerm, subjectSearch, statusFilter, startDate, endDate]); // Đừng quên thêm dependency
 
   const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
     filteredResults, // Sử dụng mảng đã lọc
@@ -106,8 +107,8 @@ const ViewResults = () => {
   return (
     <div className="min-h-screen bg-[#f8fafc] py-12 px-4 md:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* HEADER & SEARCH BAR */}
-        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-10 gap-6">
+        {/* HEADER */}
+        <div className="flex flex-col lg:flex-row lg:items-end justify-between mb-8 gap-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -120,43 +121,156 @@ const ViewResults = () => {
               Xem lại quá trình nỗ lực và kết quả các kỳ thi bạn đã tham gia
             </p>
           </motion.div>
+        </div>
 
-          {/* NHÓM TÌM KIẾM (ĐỒNG BỘ CSS KHO ĐỀ) */}
-          <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
-            {/* Ô Lọc Môn Học */}
-            <div className="relative w-full md:w-56 group">
-              <HiOutlineFilter
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Lọc môn học..."
-                value={subjectSearch}
-                onChange={(e) => {
-                  setSubjectSearch(e.target.value);
-                  jump(1);
-                }}
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none ring-2 ring-transparent focus:ring-indigo-500 transition-all font-bold text-slate-600 placeholder:text-slate-300"
-              />
+        {/* BỘ LỌC TỔNG HỢP CAO CẤP */}
+        <div className="relative mb-12">
+          {/* Glassmorphism Background Decor */}
+          <div className="absolute -inset-2 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 rounded-[3rem] blur-2xl opacity-50" />
+
+          <div className="relative bg-white/80 backdrop-blur-xl p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(79,70,229,0.05)] border border-white space-y-8">
+            {/* HÀNG 1: TÌM KIẾM CHÍNH */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+              {/* Search Đề thi */}
+              <div className="lg:col-span-7 relative group">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                  <HiOutlineSearch
+                    className="text-slate-400 group-focus-within:text-indigo-600 transition-colors duration-300"
+                    size={22}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Tìm tên đề thi bạn đã thực hiện..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    jump(1);
+                  }}
+                  className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-indigo-500/5 focus:bg-white focus:border-indigo-200 transition-all duration-300 font-semibold text-slate-700 placeholder:text-slate-400 shadow-sm"
+                />
+              </div>
+
+              {/* Lọc Môn học */}
+              <div className="lg:col-span-5 relative group">
+                <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
+                  <HiOutlineFilter
+                    className="text-slate-400 group-focus-within:text-purple-600 transition-colors duration-300"
+                    size={20}
+                  />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Lọc theo môn học..."
+                  value={subjectSearch}
+                  onChange={(e) => {
+                    setSubjectSearch(e.target.value);
+                    jump(1);
+                  }}
+                  className="w-full pl-14 pr-6 py-4 bg-slate-50/50 border border-slate-100 rounded-2xl outline-none focus:ring-4 focus:ring-purple-500/5 focus:bg-white focus:border-purple-200 transition-all duration-300 font-semibold text-slate-700 placeholder:text-slate-400 shadow-sm"
+                />
+              </div>
             </div>
 
-            {/* Ô Tìm kiếm Tên */}
-            <div className="relative w-full md:w-72 group">
-              <HiOutlineSearch
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Tìm tên đề thi..."
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value);
-                  jump(1);
-                }}
-                className="w-full pl-12 pr-4 py-3.5 bg-white border border-slate-100 rounded-2xl shadow-sm outline-none ring-2 ring-transparent focus:ring-indigo-500 transition-all font-bold text-slate-600 placeholder:text-slate-300"
-              />
+            {/* HÀNG 2: LỌC NÂNG CAO */}
+            <div className="flex flex-col xl:flex-row items-start xl:items-center justify-between gap-8 pt-6 border-t border-slate-100/80">
+              {/* Bộ Chọn Trạng Thái (Tab Style) */}
+              <div className="flex flex-col gap-3 w-full xl:w-auto">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                  Trạng thái chấm điểm
+                </span>
+                <div className="flex bg-slate-100/80 p-1.5 rounded-2xl w-fit">
+                  {[
+                    { id: "all", label: "Tất cả", color: "indigo" },
+                    { id: "graded", label: "Đã chấm xong", color: "emerald" },
+                    { id: "pending", label: "Đang chờ", color: "amber" },
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setStatusFilter(tab.id);
+                        jump(1);
+                      }}
+                      className={`relative px-6 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 ${
+                        statusFilter === tab.id
+                          ? "bg-white text-indigo-600 shadow-md scale-105"
+                          : "text-slate-500 hover:text-slate-800 hover:bg-white/40"
+                      }`}
+                    >
+                      {tab.label}
+                      {statusFilter === tab.id && (
+                        <motion.div
+                          layoutId="activeTab"
+                          className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-indigo-600 rounded-full"
+                        />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Bộ Lọc Thời Gian (Elegant inputs) */}
+              <div className="flex flex-col gap-3 w-full xl:w-auto">
+                <span className="text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">
+                  Khoảng thời gian nộp bài
+                </span>
+                <div className="flex items-center gap-3">
+                  <div className="relative group">
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => {
+                        setStartDate(e.target.value);
+                        jump(1);
+                      }}
+                      className="bg-slate-50/80 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
+                    />
+                  </div>
+                  <div className="h-px w-4 bg-slate-200" />
+                  <div className="relative group">
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => {
+                        setEndDate(e.target.value);
+                        jump(1);
+                      }}
+                      className="bg-slate-50/80 border border-slate-100 rounded-xl px-4 py-2.5 text-xs font-bold text-slate-600 outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Nút Reset Thông Minh */}
+                  {(searchTerm ||
+                    subjectSearch ||
+                    statusFilter !== "all" ||
+                    startDate ||
+                    endDate) && (
+                    <motion.button
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSubjectSearch("");
+                        setStatusFilter("all");
+                        setStartDate("");
+                        setEndDate("");
+                        jump(1);
+                      }}
+                      className="ml-2 p-2.5 bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all duration-300"
+                      title="Đặt lại bộ lọc"
+                    >
+                      <HiOutlineRefresh
+                        size={18}
+                        className={
+                          searchTerm || subjectSearch ? "animate-spin-slow" : ""
+                        }
+                      />
+                    </motion.button>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -170,20 +284,16 @@ const ViewResults = () => {
                   <motion.div
                     key={res._id}
                     layout
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
                     className="group bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-white hover:shadow-xl hover:shadow-indigo-50 transition-all flex flex-col md:flex-row justify-between items-center gap-6"
                   >
                     <div className="flex-1 w-full">
                       <div className="flex items-center gap-4 mb-3 w-full">
-                        {/* Tên đề thi - Thêm flex-grow để nó lấy hết chỗ trống bên trái */}
                         <h3 className="font-black text-xl text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
                           {res.exam?.title || "Đề thi không tên"}
                         </h3>
-
-                        {/* HIỂN THỊ MÔN HỌC  */}
                         {res.exam?.subject && (
                           <span className="shrink-0 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100">
                             {res.exam.subject}
@@ -203,6 +313,15 @@ const ViewResults = () => {
                             minute: "2-digit",
                           })}
                         </div>
+                        <span
+                          className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${
+                            res.status === "graded"
+                              ? "bg-emerald-100 text-emerald-600"
+                              : "bg-orange-100 text-orange-600"
+                          }`}
+                        >
+                          {res.status === "graded" ? "✓ Đã chấm" : "● Đang chờ"}
+                        </span>
                       </div>
 
                       <motion.button
@@ -220,11 +339,16 @@ const ViewResults = () => {
                     <div className="flex flex-col items-center md:items-end w-full md:w-auto min-w-[140px] border-t md:border-none pt-4 md:pt-0">
                       <div className="text-center md:text-right mb-3">
                         <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mb-1">
-                          Điểm trắc nghiệm
+                          Tổng điểm
                         </p>
                         <div className="flex items-baseline justify-center md:justify-end gap-1">
                           <span className="text-4xl font-black text-indigo-600 tracking-tighter">
-                            {res.scoreAuto}
+                            {parseFloat(
+                              (
+                                Number(res.scoreAuto || 0) +
+                                Number(res.scoreManual || 0)
+                              ).toFixed(2),
+                            )}
                           </span>
                           <span className="text-slate-300 font-bold">/10</span>
                         </div>
@@ -239,11 +363,15 @@ const ViewResults = () => {
                       >
                         {res.status === "pending" ? (
                           <>
-                            <HiOutlineClock size={14} /> Đang chờ chấm tự luận
+                            {" "}
+                            <HiOutlineClock size={14} /> Đang chờ chấm tự
+                            luận{" "}
                           </>
                         ) : (
                           <>
-                            <HiOutlineBadgeCheck size={14} /> Hoàn thành kết quả
+                            {" "}
+                            <HiOutlineBadgeCheck size={14} /> Hoàn thành kết
+                            quả{" "}
                           </>
                         )}
                       </div>
@@ -270,15 +398,25 @@ const ViewResults = () => {
             >
               <div className="text-7xl mb-6">🔍</div>
               <h3 className="text-2xl font-black text-slate-800">
-                {searchTerm || subjectSearch
-                  ? "Không tìm thấy kết quả"
-                  : "Lịch sử trống"}
+                Không tìm thấy kết quả
               </h3>
               <p className="text-slate-400 font-medium max-w-xs mx-auto mt-2">
-                {searchTerm || subjectSearch
-                  ? "Hãy thử điều chỉnh từ khóa tìm kiếm hoặc môn học nhé!"
-                  : "Bạn chưa thực hiện bài thi nào. Hãy bắt đầu ngay!"}
+                Hãy thử điều chỉnh từ khóa tìm kiếm, trạng thái hoặc khoảng thời
+                gian nhé!
               </p>
+              <button
+                onClick={() => {
+                  setSearchTerm("");
+                  setSubjectSearch("");
+                  setStatusFilter("all");
+                  setStartDate("");
+                  setEndDate("");
+                  jump(1);
+                }}
+                className="mt-6 text-indigo-600 font-black text-xs uppercase tracking-widest hover:underline"
+              >
+                Xóa tất cả bộ lọc
+              </button>
             </motion.div>
           )}
         </div>

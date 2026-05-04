@@ -96,9 +96,11 @@ const ReviewResult = () => {
 
   let cumulativeQuestionNumber = 0;
 
-  // Hàm helper render từng Card câu hỏi để code gọn gàng
   const renderQuestionCard = (q, userAnswer, displayNum, isChild = false) => {
     const isEssay = q.type === "essay";
+
+    const essayPoint = result.scoreManualDetails?.[q._id] || 0;
+    const essayRef = result.essayAnswers?.[q._id];
     const isCorrect = userAnswer?.isCorrect || false;
     const hasAnswered = !!userAnswer?.content;
 
@@ -116,7 +118,14 @@ const ReviewResult = () => {
           <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-lg font-black text-[10px] uppercase">
             Câu hỏi {displayNum}
           </span>
-          {!isEssay && (
+
+          {/* 2. Logic hiển thị điểm số: Giải quyết vấn đề làm tròn 0.25 -> 0.3 */}
+          {isEssay ? (
+            <div className="flex items-center gap-2 px-4 py-1.5 rounded-full font-black text-xs bg-indigo-100 text-indigo-600">
+              {/* Sử dụng parseFloat kết hợp toFixed(2) để giữ nguyên 0.25 và loại bỏ số 0 thừa (ví dụ 0.50 -> 0.5) */}
+              ĐIỂM: {parseFloat(Number(essayPoint).toFixed(2))} / {q.points}
+            </div>
+          ) : (
             <div
               className={`flex items-center gap-2 px-4 py-1.5 rounded-full font-black text-xs ${
                 !hasAnswered
@@ -187,7 +196,7 @@ const ReviewResult = () => {
           </div>
         )}
 
-        {/* BÀI LÀM CỦA HỌC SINH (CHO TỰ LUẬN HOẶC HIỂN THỊ TEXT) */}
+        {/* BÀI LÀM CỦA HỌC SINH (Cho tự luận hoặc câu hỏi không có options) */}
         {(isEssay || !q.options) && (
           <div className="mb-8 overflow-hidden rounded-2xl border-2 border-slate-100">
             <div className="bg-slate-100 px-4 py-2 text-[10px] font-black text-slate-500 uppercase tracking-widest">
@@ -199,20 +208,44 @@ const ReviewResult = () => {
           </div>
         )}
 
-        {/* GIẢI THÍCH CHI TIẾT */}
-        <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 flex gap-4">
-          <div className="bg-amber-100 p-2 rounded-xl h-fit">
-            <HiOutlineLightBulb size={20} className="text-amber-600" />
+        {/* 3. HIỂN THỊ ĐÁP ÁN TỰ LUẬN TỪ GIÁO VIÊN[cite: 3, 4] */}
+        {isEssay && essayRef && (
+          <div className="mb-8 bg-emerald-50 rounded-2xl p-6 border border-emerald-100 flex gap-4">
+            <div className="bg-emerald-100 p-2 rounded-xl h-fit">
+              <HiOutlineCheckCircle size={20} className="text-emerald-600" />
+            </div>
+            <div>
+              <h4 className="text-emerald-900 font-black text-[11px] uppercase mb-1 tracking-tight">
+                Đáp án mẫu & Nhận xét của giáo viên
+              </h4>
+              <p className="text-emerald-700 text-sm leading-relaxed italic whitespace-pre-wrap">
+                {essayRef}
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="text-amber-900 font-black text-[11px] uppercase mb-1 tracking-tight">
-              Giải thích chi tiết
-            </h4>
-            <p className="text-slate-600 text-sm leading-relaxed">
-              {q.explanation || "Chưa có giải thích cho câu hỏi này."}
-            </p>
+        )}
+
+        {/* GIẢI THÍCH CHI TIẾT CỦA CÂU HỎI */}
+
+        {(!isEssay || (isEssay && !essayRef)) && (
+          <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100 flex gap-4">
+            <div className="bg-amber-100 p-2 rounded-xl h-fit">
+              <HiOutlineLightBulb size={20} className="text-amber-600" />
+            </div>
+            <div>
+              <h4 className="text-amber-900 font-black text-[11px] uppercase mb-1 tracking-tight">
+                Giải thích chi tiết
+              </h4>
+              <div
+                className="text-slate-600 text-sm leading-relaxed"
+                dangerouslySetInnerHTML={{
+                  __html:
+                    q.explanation || "Chưa có giải thích cho câu hỏi này.",
+                }}
+              />
+            </div>
           </div>
-        </div>
+        )}
       </motion.div>
     );
   };
@@ -246,22 +279,39 @@ const ReviewResult = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="text-center bg-indigo-600 px-6 py-3 rounded-2xl shadow-lg shadow-indigo-100">
-              <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">
-                Tổng điểm
+            {/* Điểm trắc nghiệm */}
+            <div className="text-center bg-slate-100 px-4 py-2 rounded-xl">
+              <p className="text-[9px] font-black text-slate-400 uppercase">
+                Trắc nghiệm
               </p>
-              <p className="text-3xl font-black text-white">
-                {(result.scoreAuto || 0) + (result.scoreManual || 0)}
+              <p className="text-xl font-black text-slate-700">
+                {parseFloat(Number(result.scoreAuto || 0).toFixed(2))}
               </p>
             </div>
-            <div
-              className={`px-4 py-2 rounded-xl border-2 font-black text-xs uppercase ${
-                result.status === "graded"
-                  ? "bg-green-50 border-green-100 text-green-600"
-                  : "bg-orange-50 border-orange-100 text-orange-500"
-              }`}
-            >
-              {result.status === "graded" ? "Đã chấm xong" : "Chờ chấm"}
+
+            {/* Điểm tự luận */}
+            <div className="text-center bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100">
+              <p className="text-[9px] font-black text-indigo-400 uppercase">
+                Tự luận
+              </p>
+              <p className="text-xl font-black text-indigo-600">
+                {parseFloat(Number(result.scoreManual || 0).toFixed(2))}
+              </p>
+            </div>
+
+            {/* Tổng điểm */}
+            <div className="text-center bg-indigo-600 px-6 py-2 rounded-xl shadow-lg shadow-indigo-100">
+              <p className="text-[9px] font-black text-indigo-200 uppercase tracking-widest">
+                Tổng điểm
+              </p>
+              <p className="text-2xl font-black text-white">
+                {parseFloat(
+                  (
+                    Number(result.scoreAuto || 0) +
+                    Number(result.scoreManual || 0)
+                  ).toFixed(2),
+                )}
+              </p>
             </div>
           </div>
         </div>

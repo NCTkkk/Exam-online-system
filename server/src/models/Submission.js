@@ -14,7 +14,7 @@ const submissionSchema = new mongoose.Schema(
     scoreAuto: { type: Number, default: 0 },
     scoreManual: { type: Number, default: 0 },
     scoreManualDetails: { type: mongoose.Schema.Types.Mixed, default: {} },
-
+    essayAnswers: { type: mongoose.Schema.Types.Mixed, default: {} },
     feedback: { type: String, default: "" },
     status: { type: String, enum: ["pending", "graded"], default: "pending" },
     timeSpent: Number,
