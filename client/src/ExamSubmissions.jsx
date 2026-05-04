@@ -1,9 +1,18 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 
 import axios from "axios";
 import * as XLSX from "xlsx"; // Import thư viện Excel
 import { useParams, useNavigate } from "react-router-dom";
-import { HiOutlineFilter, HiOutlineDownload, HiRefresh } from "react-icons/hi";
+import {
+  HiOutlineFilter,
+  HiOutlineDownload,
+  HiRefresh,
+  HiOutlineUser,
+  HiOutlineCheckCircle,
+  HiOutlineSearch,
+  HiOutlineChartBar,
+  HiSave,
+} from "react-icons/hi";
 
 const ExamSubmissions = () => {
   const { examId } = useParams();
@@ -17,6 +26,10 @@ const ExamSubmissions = () => {
   const [exactValue, setExactValue] = useState("");
   const [rangeMin, setRangeMin] = useState("");
   const [rangeMax, setRangeMax] = useState("");
+
+  const [statusFilter, setStatusFilter] = useState("all"); // all, graded, pending
+  const [studentSearch, setStudentSearch] = useState("");
+  const [extremeFilter, setExtremeFilter] = useState("all");
 
   useEffect(() => {
     const fetchData = async () => {
@@ -49,29 +62,70 @@ const ExamSubmissions = () => {
     fetchData();
   }, [examId]);
 
-  // --- LOGIC LỌC DỮ LIỆU ---
-  const filteredSubmissions = submissions.filter((s) => {
-    // 1. Xác định giá trị điểm cần lọc (Ép kiểu về Number để tính toán chính xác)
-    let targetScore = 0;
-    const auto = Number(s.scoreAuto) || 0;
-    const manual = Number(s.scoreManual) || 0;
+  // --- LOGIC LỌC DỮ LIỆU TỔNG HỢP ---
+  const filteredSubmissions = useMemo(() => {
+    let result = submissions.filter((s) => {
+      // 1. Lọc theo tên học sinh
+      const nameMatch = s.student?.name
+        ?.toLowerCase()
+        .includes(studentSearch.toLowerCase());
 
-    if (scoreType === "total") targetScore = auto + manual;
-    else if (scoreType === "auto") targetScore = auto;
-    else if (scoreType === "manual") targetScore = manual;
+      // 2. Lọc theo trạng thái chấm điểm
+      const isGraded = s.scoreManual !== undefined && s.scoreManual !== null;
+      const statusMatch =
+        statusFilter === "all"
+          ? true
+          : statusFilter === "graded"
+            ? isGraded
+            : !isGraded;
 
-    // 2. Kiểm tra điều kiện lọc
-    if (filterType === "exact") {
-      // Nếu ô nhập trống thì không lọc (hiện tất cả)
-      if (exactValue === "") return true;
-      return targetScore === Number(exactValue);
-    } else {
-      // Khoảng điểm: Nếu để trống thì mặc định là 0 đến 10
-      const min = rangeMin === "" ? 0 : Number(rangeMin);
-      const max = rangeMax === "" ? 10 : Number(rangeMax);
-      return targetScore >= min && targetScore <= max;
+      return nameMatch && statusMatch;
+    });
+
+    // 3. Lọc lấy bài Cao nhất / Thấp nhất (Nếu chọn)
+    if (extremeFilter !== "all") {
+      const studentGroups = {};
+      result.forEach((s) => {
+        const sid = s.student?._id || s.student?.email;
+        if (!studentGroups[sid]) studentGroups[sid] = [];
+        studentGroups[sid].push(s);
+      });
+
+      result = Object.values(studentGroups).map((group) => {
+        return group.reduce((prev, current) => {
+          const scorePrev =
+            (Number(prev.scoreAuto) || 0) + (Number(prev.scoreManual) || 0);
+          const scoreCurr =
+            (Number(current.scoreAuto) || 0) +
+            (Number(current.scoreManual) || 0);
+          return extremeFilter === "highest"
+            ? scoreCurr > scorePrev
+              ? current
+              : prev
+            : scoreCurr < scorePrev
+              ? current
+              : prev;
+        });
+      });
     }
-  });
+
+    // 4. Lọc theo Khoảng điểm (Sửa lỗi: Ép kiểu Number và xử lý chuỗi rỗng)
+    return result.filter((s) => {
+      const totalScore =
+        (Number(s.scoreAuto) || 0) + (Number(s.scoreManual) || 0);
+      const min = rangeMin === "" ? -Infinity : Number(rangeMin);
+      const max = rangeMax === "" ? Infinity : Number(rangeMax);
+
+      return totalScore >= min && totalScore <= max;
+    });
+  }, [
+    submissions,
+    studentSearch,
+    statusFilter,
+    extremeFilter,
+    rangeMin,
+    rangeMax,
+  ]);
 
   // Hàm xử lý xuất Excel
   const exportToExcel = () => {
@@ -93,202 +147,229 @@ const ExamSubmissions = () => {
     XLSX.writeFile(workbook, `${examTitle.replace(/\s+/g, "_")}_Loc.xlsx`);
   };
 
+  const resetFilters = () => {
+    setStudentSearch("");
+    setStatusFilter("all");
+    setExtremeFilter("all");
+    setExactValue("");
+    setRangeMin("");
+    setRangeMax("");
+  };
+
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+    <div className="py-8 px-12 max-w-7xl mx-auto bg-slate-50 min-h-screen">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8">
         <div>
-          <h2 className="text-3xl font-black text-slate-800">
+          <h2 className="text-4xl font-black text-slate-800 tracking-tight">
             Danh sách bài nộp
           </h2>
-          <p className="text-slate-700">Đề thi: {examTitle}</p>
+          <p className="text-slate-500 font-medium flex items-center gap-2">
+            <span className="w-2 h-2 bg-indigo-500 rounded-full"></span>
+            Đề thi: {examTitle}
+          </p>
         </div>
         <button
           onClick={exportToExcel}
-          className="bg-green-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-green-700 transition flex items-center gap-2 shadow-lg"
+          className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100 active:scale-95"
         >
-          📊 Xuất file Excel
+          <HiOutlineDownload size={20} />
+          <span>Xuất Excel</span>
         </button>
       </div>
 
-      {/* bộ lọc */}
-      {/* THANH BỘ LỌC (FILTER BAR) */}
-      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap items-center gap-6">
-        <div className="flex items-center gap-2 text-indigo-600 font-bold">
-          <HiOutlineFilter size={22} />
-          <span>LỌC KẾT QUẢ:</span>
-        </div>
+      {/* BỘ LỌC TINH GỌN - VERSION SANG TRỌNG */}
+      <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-100 border border-slate-100 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+          {/* 1. Tìm tên thí sinh */}
+          <div className="md:col-span-3 space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+              Tìm kiếm
+            </span>
+            <div className="relative group">
+              <HiOutlineSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
+              <input
+                type="text"
+                placeholder="Tên thí sinh..."
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                className="w-full h-12 pl-11 pr-4 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all"
+              />
+            </div>
+          </div>
 
-        {/* Chọn loại điểm */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-black uppercase text-slate-400">
-            Loại điểm
-          </label>
-          <select
-            value={scoreType}
-            onChange={(e) => setScoreType(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="total">Tổng điểm</option>
-            <option value="auto">Điểm trắc nghiệm</option>
-            <option value="manual">Điểm tự luận</option>
-          </select>
-        </div>
+          {/* 2. Trạng thái */}
+          <div className="md:col-span-3 space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+              Trạng thái
+            </span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="w-full h-12 px-4 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 outline-none cursor-pointer focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all appearance-none"
+            >
+              <option value="all">🎯 Tất cả trạng thái</option>
+              <option value="graded">✅ Đã chấm điểm</option>
+              <option value="pending">⏳ Đang chờ chấm</option>
+            </select>
+          </div>
 
-        {/* Chọn kiểu lọc */}
-        <div className="flex flex-col gap-1">
-          <label className="text-[10px] font-black uppercase text-slate-400">
-            Kiểu lọc
-          </label>
-          <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            <option value="exact">Điểm cụ thể</option>
-            <option value="range">Khoảng điểm</option>
-          </select>
-        </div>
+          {/* 3. Phân loại bài làm */}
+          <div className="md:col-span-3 space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+              Lọc bài thi
+            </span>
+            <select
+              value={extremeFilter}
+              onChange={(e) => setExtremeFilter(e.target.value)}
+              className="w-full h-12 px-4 bg-indigo-50/30 border border-indigo-100 rounded-2xl text-sm font-bold text-indigo-600 outline-none cursor-pointer focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all appearance-none"
+            >
+              <option value="all">📑 Tất cả bài nộp</option>
+              <option value="highest">🏆 Điểm cao nhất</option>
+              <option value="lowest">📉 Điểm thấp nhất</option>
+            </select>
+          </div>
 
-        {/* Nhập giá trị */}
-        <div className="flex items-end gap-3">
-          {filterType === "exact" ? (
-            <div className="flex flex-col gap-1">
-              <label className="text-[10px] font-black uppercase text-slate-400">
-                Số điểm
-              </label>
+          {/* 4. Khoảng điểm - Nổi bật nhưng gọn gàng */}
+          <div className="md:col-span-2 space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+              Khoảng điểm
+            </span>
+            <div className="flex items-center bg-slate-50/50 border border-slate-200 rounded-2xl h-12 px-3 focus-within:ring-4 focus-within:ring-indigo-500/5 focus-within:border-indigo-500 focus-within:bg-white transition-all">
               <input
                 type="number"
                 placeholder="0"
-                step="0.1"
-                value={exactValue}
-                onChange={(e) => setExactValue(e.target.value)}
-                className="w-24 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold outline-none focus:ring-2 focus:ring-indigo-500"
+                value={rangeMin}
+                onChange={(e) => setRangeMin(e.target.value)}
+                className="w-full bg-transparent text-center text-sm font-black text-slate-700 outline-none placeholder:text-slate-300"
+              />
+              <div className="h-4 w-[1px] bg-slate-300 mx-1"></div>
+              <input
+                type="number"
+                placeholder="10"
+                value={rangeMax}
+                onChange={(e) => setRangeMax(e.target.value)}
+                className="w-full bg-transparent text-center text-sm font-black text-slate-700 outline-none placeholder:text-slate-300"
               />
             </div>
-          ) : (
-            <>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-slate-400">
-                  Từ
-                </label>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={rangeMin}
-                  onChange={(e) => setRangeMin(e.target.value)}
-                  className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-              <span className="mb-2 font-bold text-slate-300">-</span>
-              <div className="flex flex-col gap-1">
-                <label className="text-[10px] font-black uppercase text-slate-400">
-                  Đến
-                </label>
-                <input
-                  type="number"
-                  placeholder="10"
-                  value={rangeMax}
-                  onChange={(e) => setRangeMax(e.target.value)}
-                  className="w-20 bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-bold outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              </div>
-            </>
-          )}
+          </div>
 
-          <button
-            onClick={() => {
-              setExactValue("");
-              setRangeMin("");
-              setRangeMax("");
-            }}
-            className="group h-[40px] w-[40px] ml-3 flex items-center justify-center border border-slate-200 rounded-lg text-slate-500 hover:text-red-500 hover:border-red-300 hover:bg-red-50 transition-all duration-200"
-          >
-            <HiRefresh className="w-4 h-4 transition-transform duration-300 " />
-          </button>
+          <div className="md:col-span-1 flex items-center justify-center pb-4">
+            <button
+              onClick={() => {
+                setStudentSearch("");
+                setStatusFilter("all");
+                setExtremeFilter("all");
+                setRangeMin("");
+                setRangeMax("");
+              }}
+              className="group flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-widest whitespace-nowrap"
+            >
+              <HiRefresh
+                size={16}
+                className="group-hover:rotate-180 transition-transform duration-500"
+              />
+              <span>Tất cả</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* TABLE AREA */}
-      <div className="bg-white rounded-3xl shadow-xl border border-slate-100 overflow-hidden">
+      {/* BẢNG DỮ LIỆU */}
+
+      <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-slate-900 text-white">
-              <th className="p-5 font-bold uppercase text-xs tracking-widest">
-                Thí sinh
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest text-left">
+                <div className="flex items-center gap-2">
+                  <span>Thí sinh</span>
+                  {/* Badge số lượng bản ghi */}
+                  <span className="bg-indigo-500 text-[9px] px-2 py-0.5 rounded-full ring-2 ring-indigo-400/20 shadow-sm animate-in fade-in zoom-in duration-300">
+                    {filteredSubmissions.length} bản ghi
+                  </span>
+                </div>
               </th>
-              <th className="p-5 font-bold uppercase text-xs tracking-widest text-center">
+
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest text-center">
                 Trắc nghiệm
               </th>
-              <th className="p-5 font-bold uppercase text-xs tracking-widest text-center">
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest text-center">
                 Tự luận
               </th>
-              <th className="p-5 font-bold uppercase text-xs tracking-widest text-center">
-                Tổng
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest text-center">
+                Tổng điểm
               </th>
-              <th className="p-5 font-bold uppercase text-xs tracking-widest">
-                Thời gian
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest">
+                Trạng thái
               </th>
-              <th className="p-5 font-bold uppercase text-xs tracking-widest">
+              <th className="p-5 font-bold uppercase text-[10px] tracking-widest text-right">
                 Thao tác
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-50">
             {filteredSubmissions.map((s) => (
               <tr
                 key={s._id}
-                className="border-b border-slate-50 hover:bg-indigo-50/30 transition-colors"
+                className="hover:bg-indigo-50/20 transition-colors group"
               >
                 <td className="p-5">
-                  <div className="font-black text-slate-800">
+                  <div className="font-black text-slate-800 group-hover:text-indigo-600 transition-colors">
                     {s.student?.name}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-[11px] text-slate-400">
                     {s.student?.email}
                   </div>
                 </td>
-                <td className="p-5 text-center font-bold text-blue-600 bg-blue-50/20">
+                <td className="p-5 text-center font-bold text-slate-600">
                   {s.scoreAuto}đ
                 </td>
-                <td className="p-5 text-center font-bold text-orange-600">
-                  {s.scoreManual || 0}đ
+                <td className="p-5 text-center font-bold text-slate-600">
+                  {s.scoreManual !== undefined ? `${s.scoreManual}đ` : "—"}
                 </td>
                 <td className="p-5 text-center">
-                  <span className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-black shadow-sm">
+                  <span className="px-4 py-2 bg-indigo-600 text-white rounded-xl font-black shadow-sm inline-block min-w-[60px]">
                     {s.scoreAuto + (s.scoreManual || 0)}đ
                   </span>
                 </td>
-                <td className="p-5 text-slate-500 font-medium text-sm">
-                  {Math.floor(s.timeSpent / 60)}ph {s.timeSpent % 60}s
-                </td>
                 <td className="p-5">
+                  {s.scoreManual !== undefined ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
+                      Đã chấm
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase">
+                      <span className="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                      Chờ chấm
+                    </span>
+                  )}
+                </td>
+                <td className="p-5 text-right">
                   <button
                     onClick={() => navigate(`/grade-submission/${s._id}`)}
-                    className="text-indigo-600 hover:text-indigo-800 font-black text-sm flex items-center gap-1 transition-transform active:scale-95"
+                    className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight hover:bg-indigo-600 transition-all active:scale-90"
                   >
-                    CHẤM ĐIỂM →
+                    Chấm bài →
                   </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+
         {filteredSubmissions.length === 0 && (
-          <div className="p-20 text-center flex flex-col items-center gap-3">
-            <span className="text-5xl">🔍</span>
-            <p className="text-slate-400 font-bold text-xl">
-              Không tìm thấy kết quả phù hợp
+          <div className="p-24 text-center">
+            <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-4xl text-slate-300">🔍</span>
+            </div>
+            <p className="text-slate-400 font-bold text-lg">
+              Không tìm thấy bài nộp nào
             </p>
-            <button
-              onClick={() => {
-                setExactValue("");
-                setRangeMin("");
-                setRangeMax("");
-              }}
-              className="text-indigo-600 font-bold underline"
-            >
-              Hiển thị lại tất cả
-            </button>
+            <p className="text-slate-300 text-sm">
+              Hãy thử thay đổi bộ lọc của bạn
+            </p>
           </div>
         )}
       </div>

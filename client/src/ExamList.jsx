@@ -17,6 +17,9 @@ const ExamList = () => {
   const [exams, setExams] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [subjectSearch, setSubjectSearch] = useState("");
+  const [authorSearch, setAuthorSearch] = useState("");
+  const [maxDuration, setMaxDuration] = useState("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,46 +44,41 @@ const ExamList = () => {
     return [...new Set(allSubjects)];
   }, [exams]);
 
-  // Lọc đề thi theo tìm kiếm
-  // const filteredExams = exams.filter((exam) =>
-  //   exam.title.toLowerCase().includes(searchTerm.toLowerCase()),
-  // );
   const filteredExams = React.useMemo(() => {
-    // 1. Tạo bản sao mảng gốc
     let result = [...exams];
 
-    // 2. Lọc theo Môn học (Dạng nhập văn bản - Partial match)
+    // 1. Lọc theo Môn học
     if (subjectSearch.trim()) {
-      const sSearch = subjectSearch.toLowerCase();
       result = result.filter((exam) =>
-        exam.subject?.toLowerCase().includes(sSearch),
+        exam.subject?.toLowerCase().includes(subjectSearch.toLowerCase()),
       );
     }
 
-    // 3. Nếu không có từ khóa tìm kiếm tên, trả về kết quả đã lọc theo môn
+    // 2. Lọc theo Tên người ra đề (Author)
+    if (authorSearch.trim()) {
+      result = result.filter((exam) =>
+        exam.author?.name?.toLowerCase().includes(authorSearch.toLowerCase()),
+      );
+    }
+
+    // 3. Lọc theo Thời gian tối đa (Dưới hoặc bằng X phút)
+    if (maxDuration) {
+      result = result.filter((exam) => exam.duration <= parseInt(maxDuration));
+    }
+
+    // 4. Lọc và Sắp xếp theo Tên đề thi (Logic cũ của bạn)
     if (!searchTerm.trim()) return result;
 
-    // 4. Logic tìm kiếm và sắp xếp tên đề thi "xịn" (Giữ nguyên 100%)
     const search = searchTerm.toLowerCase();
-
     return result
       .filter((exam) => exam.title.toLowerCase().includes(search))
       .sort((a, b) => {
-        const titleA = a.title.toLowerCase();
-        const titleB = b.title.toLowerCase();
-
-        const indexA = titleA.indexOf(search);
-        const indexB = titleB.indexOf(search);
-
-        // Ưu tiên tiêu đề có từ khóa nằm ở vị trí đầu tiên hơn
-        if (indexA !== indexB) {
-          return indexA - indexB;
-        }
-
-        // Nếu cùng vị trí, ưu tiên tiêu đề ngắn hơn
-        return titleA.length - titleB.length;
+        const indexA = a.title.toLowerCase().indexOf(search);
+        const indexB = b.title.toLowerCase().indexOf(search);
+        if (indexA !== indexB) return indexA - indexB;
+        return a.title.length - b.title.length;
       });
-  }, [exams, searchTerm, subjectSearch]); // Dependency dùng subjectSearch
+  }, [exams, searchTerm, subjectSearch, authorSearch, maxDuration]);
 
   const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
     filteredExams,
@@ -108,37 +106,134 @@ const ExamList = () => {
             </p>
           </motion.div>
 
-          {/* Nhóm tìm kiếm và lọc: Đồng bộ CSS với trang Quản lý */}
-          <div className="flex flex-col md:flex-row gap-4 w-full lg:w-auto">
-            {/* Ô Lọc Môn Học (Dạng Input nhập văn bản) */}
-            <div className="relative w-full md:w-64 group">
-              <HiOutlineFilter
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Lọc môn học..."
-                value={subjectSearch} // Chú ý: Đổi tên state thành subjectSearch cho đúng bản chất
-                onChange={(e) => setSubjectSearch(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm outline-none ring-2 ring-transparent focus:ring-indigo-500 transition-all font-bold text-slate-700"
-              />
+          {/* Nhóm tìm kiếm và lọc nâng cao */}
+          <div className="bg-white/70 backdrop-blur-md p-4 rounded-3xl shadow-sm mb-8 border border-white space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {/* 1. Lọc Môn Học */}
+              <div className="relative group">
+                <HiOutlineFilter
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  placeholder="Môn học..."
+                  value={subjectSearch}
+                  onChange={(e) => {
+                    setSubjectSearch(e.target.value);
+                    jump(1);
+                  }}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-600 placeholder:text-slate-300 text-xs"
+                />
+              </div>
+
+              {/* 2. Lọc Tên Giáo Viên - ĐÃ FIX LỖI NHẬP LIỆU */}
+              <div className="relative group">
+                <HiOutlineUser
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  placeholder="Giáo viên..."
+                  value={authorSearch}
+                  onChange={(e) => {
+                    setAuthorSearch(e.target.value);
+                    jump(1);
+                  }} // Sửa lỗi ở đây
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-600 placeholder:text-slate-300 text-xs"
+                />
+              </div>
+
+              {/* 3. Tìm Tên Đề Thi */}
+              <div className="relative group">
+                <HiOutlineSearch
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <input
+                  type="text"
+                  placeholder="Tên đề thi..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    jump(1);
+                  }}
+                  className="w-full pl-9 pr-3 py-2 bg-white border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-600 placeholder:text-slate-300 text-xs"
+                />
+              </div>
+
+              {/* 4. Lọc Thời Gian */}
+              <div className="relative group">
+                <HiOutlineClock
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                  size={16}
+                />
+                <select
+                  value={maxDuration}
+                  onChange={(e) => {
+                    setMaxDuration(e.target.value);
+                    jump(1);
+                  }}
+                  className="w-full pl-9 pr-8 py-2 bg-white border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-600 text-xs appearance-none cursor-pointer"
+                >
+                  <option value="">Thời gian</option>
+                  <option value="5">≤ 5 phút</option>
+                  <option value="15">≤ 15 phút</option>
+                  <option value="45">≤ 45 phút</option>
+                  <option value="60">≤ 60 phút</option>
+                  <option value="90">≤ 90 phút</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+                  <svg
+                    className="w-3 h-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    ></path>
+                  </svg>
+                </div>
+              </div>
             </div>
 
-            {/* Ô Tìm kiếm Tên Đề Thi */}
-            <div className="relative w-full md:w-80 group">
-              <HiOutlineSearch
-                className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
-                size={20}
-              />
-              <input
-                type="text"
-                placeholder="Tìm kiếm tên đề thi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl shadow-sm outline-none ring-2 ring-transparent focus:ring-indigo-500 transition-all font-bold text-slate-700"
-              />
-            </div>
+            {/* Nút xóa nhanh */}
+            {(searchTerm || subjectSearch || authorSearch || maxDuration) && (
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSubjectSearch("");
+                    setAuthorSearch("");
+                    setMaxDuration("");
+                    jump(1);
+                  }}
+                  className="flex items-center gap-1.5 text-slate-400 hover:text-indigo-600 transition-colors duration-300"
+                >
+                  <svg
+                    className="w-3.5 h-3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2.5"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span className="text-[10px] font-bold uppercase tracking-widest">
+                    Reset bộ lọc
+                  </span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
 
