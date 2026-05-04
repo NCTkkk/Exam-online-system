@@ -13,12 +13,14 @@ const submissionSchema = new mongoose.Schema(
     ],
     scoreAuto: { type: Number, default: 0 },
     scoreManual: { type: Number, default: 0 },
-    feedback: { type: String, default: "" }, // THÊM TRƯỜNG NÀY
+    scoreManualDetails: { type: mongoose.Schema.Types.Mixed, default: {} },
+
+    feedback: { type: String, default: "" },
     status: { type: String, enum: ["pending", "graded"], default: "pending" },
     timeSpent: Number,
     startTime: { type: Date },
   },
-  { timestamps: true },
+  { timestamps: true, strict: false },
 );
 
 module.exports = mongoose.model("Submission", submissionSchema);

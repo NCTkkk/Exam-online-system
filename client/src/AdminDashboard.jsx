@@ -6,16 +6,18 @@ import {
   HiOutlineUserGroup,
   HiOutlineShieldCheck,
   HiOutlineAcademicCap,
-  HiOutlineMail,
   HiOutlineSearch,
   HiOutlineFilter,
   HiShieldCheck,
 } from "react-icons/hi";
+// Import các công cụ phân trang dùng chung
+import { usePagination } from "./usePagination";
+import Pagination from "./Pagination";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterRole, setFilterRole] = useState("all"); // all, admin, user, member
+  const [filterRole, setFilterRole] = useState("all");
   const [loading, setLoading] = useState(true);
 
   const fetchUsers = async () => {
@@ -50,33 +52,38 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- LOGIC LỌC DỮ LIỆU ---
-  const filteredUsers = users
+  // --- 1. LOGIC LỌC DỮ LIỆU (Giữ nguyên logic của bạn) ---
+  const filteredData = users
     .filter((u) => {
       const searchLower = searchTerm.toLowerCase().trim();
       const matchesName = u.name.toLowerCase().includes(searchLower);
       const matchesEmail = u.email.toLowerCase().includes(searchLower);
       const matchesRole = filterRole === "all" || u.role === filterRole;
-
       return matchesRole && (matchesName || matchesEmail);
     })
     .sort((a, b) => {
       const searchLower = searchTerm.toLowerCase().trim();
       if (!searchLower) return 0;
-
       const aName = a.name.toLowerCase();
       const bName = b.name.toLowerCase();
-
-      // 1. Ưu tiên những tên bắt đầu bằng từ khóa tìm kiếm (Ví dụ: "u" trong "user2")
       const aStartsWith = aName.startsWith(searchLower);
       const bStartsWith = bName.startsWith(searchLower);
-
       if (aStartsWith && !bStartsWith) return -1;
       if (!aStartsWith && bStartsWith) return 1;
-
-      // 2. Nếu cả hai đều không bắt đầu bằng từ khóa, giữ nguyên thứ tự hoặc sắp xếp theo bảng chữ cái
       return aName.localeCompare(bName);
     });
+
+  // --- 2. TÍCH HỢP PHÂN TRANG ---
+  // Sử dụng 8 người dùng trên mỗi trang cho giao diện Admin
+  const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
+    filteredData,
+    8,
+  );
+
+  // Reset về trang 1 khi người dùng thay đổi bộ lọc hoặc tìm kiếm
+  useEffect(() => {
+    jump(1);
+  }, [searchTerm, filterRole]);
 
   const getRoleBadge = (role) => {
     switch (role) {
@@ -122,9 +129,8 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* --- THANH CÔNG CỤ: TÌM KIẾM & LỌC --- */}
+        {/* Công cụ tìm kiếm & lọc */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          {/* Ô tìm kiếm */}
           <div className="md:col-span-2 relative group">
             <HiOutlineSearch
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors"
@@ -139,7 +145,6 @@ const AdminDashboard = () => {
             />
           </div>
 
-          {/* Bộ lọc Role */}
           <div className="relative">
             <HiOutlineFilter
               className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -158,7 +163,7 @@ const AdminDashboard = () => {
           </div>
         </div>
 
-        {/* Bảng danh sách */}
+        {/* Bảng danh sách - Dùng currentData thay vì filteredData */}
         <div className="bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-white overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
@@ -176,12 +181,12 @@ const AdminDashboard = () => {
             </thead>
             <tbody className="divide-y divide-slate-50">
               <AnimatePresence>
-                {filteredUsers.map((u, index) => (
+                {currentData.map((u) => (
                   <motion.tr
                     key={u._id}
                     layout
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, scale: 0.95 }}
                     className="hover:bg-slate-50/50 transition-colors"
                   >
@@ -215,7 +220,7 @@ const AdminDashboard = () => {
             </tbody>
           </table>
 
-          {filteredUsers.length === 0 && (
+          {currentData.length === 0 && !loading && (
             <div className="py-20 text-center">
               <p className="text-slate-400 font-bold italic">
                 Không tìm thấy thành viên nào phù hợp...
@@ -223,6 +228,15 @@ const AdminDashboard = () => {
             </div>
           )}
         </div>
+
+        {/* --- HIỂN THỊ PHÂN TRANG --- */}
+        <Pagination
+          currentPage={currentPage}
+          maxPage={maxPage}
+          next={next}
+          prev={prev}
+          jump={jump}
+        />
       </div>
     </div>
   );

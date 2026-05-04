@@ -95,7 +95,7 @@ const getLeaderboard = async (req, res) => {
 const getMyResults = async (req, res) => {
   try {
     const results = await Submission.find({ student: req.user.id })
-      .populate("exam", "title")
+      .populate("exam", "title subject")
       .sort({ createdAt: -1 });
     res.json(results);
   } catch (err) {
@@ -105,10 +105,11 @@ const getMyResults = async (req, res) => {
 
 const gradeSubmission = async (req, res) => {
   try {
-    const { scoreManual, feedback } = req.body;
+    console.log("Dữ liệu nhận từ FE:", req.body);
+    const { scoreManual, feedback, scoreManualDetails } = req.body;
     const updatedSubmission = await Submission.findByIdAndUpdate(
       req.params.submissionId,
-      { $set: { scoreManual, feedback, status: "graded" } },
+      { $set: { scoreManual, feedback, scoreManualDetails, status: "graded" } },
       { new: true },
     );
     if (!updatedSubmission)

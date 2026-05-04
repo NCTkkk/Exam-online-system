@@ -28,7 +28,7 @@ const getMyExams = async (req, res) => {
 const getAllExamsPublished = async (req, res) => {
   try {
     const exams = await Exam.find()
-      .select("title duration author")
+      .select("title duration author subject")
       .populate("author", "name");
     res.json(exams);
   } catch (err) {
@@ -39,7 +39,7 @@ const getAllExamsPublished = async (req, res) => {
 // 4. Lấy danh sách rút gọn (Chỉ title và ID)
 const getExamsShortList = async (req, res) => {
   try {
-    const exams = await Exam.find().select("title _id");
+    const exams = await Exam.find().select("title _id subject");
     res.status(200).json(exams);
   } catch (err) {
     res.status(500).json(err);

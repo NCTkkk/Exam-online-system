@@ -4,6 +4,7 @@ const examSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    subject: { type: String, required: true },
     duration: { type: Number, required: true },
     questions: [
       {
@@ -31,7 +32,7 @@ const examSchema = new mongoose.Schema(
       },
     ],
   },
-  { timestamps: true },
+  { timestamps: true, strict: false },
 );
 
 module.exports = mongoose.model("Exam", examSchema);

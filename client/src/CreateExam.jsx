@@ -21,6 +21,8 @@ const CreateExam = () => {
   const [questions, setQuestions] = useState([]);
   const [previewIdx, setPreviewIdx] = useState(null);
 
+  const [subject, setSubject] = useState("");
+
   const lastFocusedElement = useRef(null);
   const navigate = useNavigate();
 
@@ -137,13 +139,14 @@ const CreateExam = () => {
 
   const handleSubmit = async () => {
     if (!title) return alert("Vui lòng nhập tiêu đề đề thi!");
+    if (!subject) return alert("Vui lòng nhập tên môn học!");
     if (questions.length === 0) return alert("Đề thi chưa có câu hỏi nào!");
 
     try {
       const token = localStorage.getItem("token");
       await axios.post(
         "http://localhost:5000/api/exams/create",
-        { title, duration, questions },
+        { title, subject, duration, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Đề thi đã được lưu thành công!");
@@ -162,6 +165,14 @@ const CreateExam = () => {
           placeholder="NHẬP TÊN ĐỀ THI..."
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+        />
+
+        {/* Ô nhập Môn học */}
+        <input
+          className="text-lg font-bold outline-none border-2 border-slate-200 focus:border-emerald-500 focus:ring-4 focus:ring-emerald-50 bg-slate-50/50 px-4 py-2 rounded-xl w-1/3 transition-all placeholder:text-slate-400"
+          placeholder="MÔN HỌC..."
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
         />
 
         <div className="flex bg-slate-100 p-1 rounded-2xl gap-1 border border-slate-200">

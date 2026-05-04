@@ -14,16 +14,31 @@ const Leaderboard = () => {
   const [rankings, setRankings] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedExam, setSelectedExam] = useState("");
+  const [subjectFilter, setSubjectFilter] = useState(""); // Lưu nội dung người dùng nhập
+
+  const [selectedSubject, setSelectedSubject] = useState("");
 
   useEffect(() => {
-    axios
-      .get("http://localhost:5000/api/exams")
-      .then((res) => setExams(res.data));
+    axios.get("http://localhost:5000/api/exams").then((res) => {
+      // KIỂM TRA 1: Dữ liệu thô từ server trả về có trường subject không?
+
+      setExams(res.data);
+    });
   }, []);
+
+  const subjects = [...new Set(exams.map((ex) => ex.subject).filter(Boolean))];
+
+  // Lọc danh sách đề thi dựa trên tên môn học đang nhập
+  const filteredExams = exams.filter((ex) => {
+    const examSubject = ex.subject ? String(ex.subject).toLowerCase() : "";
+    const filterText = subjectFilter.toLowerCase();
+    return examSubject.includes(filterText); // Trả về true nếu tên môn chứa chuỗi đang nhập
+  });
 
   const handleExamChange = async (examId) => {
     if (!examId) return;
     setSelectedExam(examId);
+
     setLoading(true);
     try {
       const res = await axios.get(
@@ -66,23 +81,60 @@ const Leaderboard = () => {
           </p>
         </div>
 
-        {/* SELECT BOX CUSTOM */}
-        <div className="mb-12 relative max-w-md mx-auto">
-          <select
-            onChange={(e) => handleExamChange(e.target.value)}
-            className="w-full appearance-none p-5 rounded-4xl border-none bg-white shadow-xl shadow-indigo-100/50 focus:ring-4 focus:ring-indigo-500/10 outline-none font-black text-indigo-700 cursor-pointer pr-12 transition-all"
-          >
-            <option value="">-- Chọn đề thi để xem hạng --</option>
-            {exams.map((ex) => (
-              <option key={ex._id} value={ex._id}>
-                {ex.title}
+        {/* BỘ LỌC HAI CẤP */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12 max-w-2xl mx-auto">
+          {/* Ô NHẬP TÊN MÔN ĐỂ LỌC */}
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Nhập tên môn (VD: Toán, Anh...)"
+              value={subjectFilter}
+              onChange={(e) => {
+                setSubjectFilter(e.target.value);
+                setSelectedExam(""); // Reset đề thi đang chọn khi gõ lọc mới
+                setRankings([]);
+              }}
+              className="w-full p-4 rounded-3xl border-none bg-emerald-50 shadow-lg shadow-emerald-100/50 focus:ring-4 focus:ring-emerald-500/10 outline-none font-bold text-emerald-700 transition-all placeholder:text-emerald-300"
+            />
+            {/* Icon tìm kiếm cho sinh động */}
+            <div className="absolute right-5 top-1/2 -translate-y-1/2 text-emerald-400">
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </div>
+          </div>
+
+          {/* Ô CHỌN ĐỀ THI (Danh sách này đã được thu hẹp theo tên môn ở trên) */}
+          <div className="relative">
+            <select
+              value={selectedExam}
+              onChange={(e) => handleExamChange(e.target.value)}
+              className="w-full appearance-none p-4 rounded-3xl border-none bg-white shadow-xl shadow-indigo-100/50 focus:ring-4 focus:ring-indigo-500/10 outline-none font-black text-indigo-700 cursor-pointer pr-12 transition-all"
+            >
+              <option value="">
+                --{" "}
+                {filteredExams.length > 0 ? "Chọn đề thi" : "Không tìm thấy đề"}{" "}
+                --
               </option>
-            ))}
-          </select>
-          <HiOutlineChevronDown
-            className="absolute right-5 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none"
-            size={20}
-          />
+              {filteredExams.map((ex) => (
+                <option key={ex._id} value={ex._id}>
+                  {ex.title} {ex.subject ? `(${ex.subject})` : ""}
+                </option>
+              ))}
+            </select>
+            <HiOutlineChevronDown className="absolute right-5 top-1/2 -translate-y-1/2 text-indigo-400 pointer-events-none" />
+          </div>
         </div>
 
         {loading ? (
@@ -174,6 +226,7 @@ const Leaderboard = () => {
               )}
             </div>
 
+            {/*  */}
             {/* LIST REST */}
             <div className="bg-white rounded-[2.5rem] shadow-xl shadow-slate-200/50 overflow-hidden border border-white">
               <table className="w-full border-collapse">

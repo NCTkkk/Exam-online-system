@@ -24,6 +24,7 @@ const EditExam = () => {
   const [questions, setQuestions] = useState([]);
   const [previewIdx, setPreviewIdx] = useState(null);
   const lastFocusedElement = useRef(null);
+  const [subject, setSubject] = useState("");
 
   // 1. Tải dữ liệu cũ
   useEffect(() => {
@@ -35,6 +36,7 @@ const EditExam = () => {
         });
         setTitle(res.data.title);
         setDuration(res.data.duration);
+        setSubject(res.data.subject || "");
         setQuestions(res.data.questions || []);
       } catch (err) {
         alert("Không thể tải dữ liệu đề thi");
@@ -168,7 +170,7 @@ const EditExam = () => {
       const token = localStorage.getItem("token");
       await axios.put(
         `http://localhost:5000/api/exams/${id}`,
-        { title, duration, questions },
+        { title, subject, duration, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Cập nhật đề thi thành công!");
@@ -196,6 +198,14 @@ const EditExam = () => {
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Tiêu đề đề thi..."
+            />
+
+            <input
+              onBlur={handleBlur}
+              className="text-lg font-bold outline-none text-emerald-600 border-b-2 border-transparent focus:border-emerald-600 bg-white/50 px-3 py-1 rounded-lg w-full md:w-40"
+              value={subject}
+              onChange={(e) => setSubject(e.target.value)}
+              placeholder="Môn học..."
             />
           </div>
 

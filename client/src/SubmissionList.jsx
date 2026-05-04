@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -16,6 +16,7 @@ const SubmissionList = () => {
   const { examId } = useParams();
   const [submissions, setSubmissions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -35,6 +36,29 @@ const SubmissionList = () => {
     };
     fetchSubmissions();
   }, [examId]);
+
+  const filteredSubmissions = useMemo(() => {
+    if (!searchTerm.trim()) return submissions;
+
+    const s = searchTerm.toLowerCase();
+    return submissions
+      .filter((sub) => {
+        const name = sub.student?.name?.toLowerCase() || "";
+        const email = sub.student?.email?.toLowerCase() || "";
+        return name.includes(s) || email.includes(s);
+      })
+      .sort((a, b) => {
+        const nameA = a.student?.name?.toLowerCase() || "";
+        const nameB = b.student?.name?.toLowerCase() || "";
+
+        const startsWithA = nameA.startsWith(s);
+        const startsWithB = nameB.startsWith(s);
+
+        if (startsWithA && !startsWithB) return -1; // A lên trước
+        if (!startsWithA && startsWithB) return 1; // B lên trước
+        return nameA.localeCompare(nameB); // Nếu cùng loại thì xếp theo alphabet
+      });
+  }, [submissions, searchTerm]);
 
   const stats = {
     total: submissions.length,
@@ -140,6 +164,28 @@ const SubmissionList = () => {
           ))}
         </div>
 
+        {/* SEARCH BAR */}
+        <div className="mb-8 relative group">
+          <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+            <HiOutlineUserGroup size={20} />
+          </div>
+          <input
+            type="text"
+            placeholder="Tìm kiếm tên học sinh..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-14 pr-6 py-5 bg-white border-none rounded-3xl shadow-sm focus:ring-4 focus:ring-indigo-100 transition-all font-bold text-slate-700 placeholder:text-slate-300 placeholder:font-medium"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm("")}
+              className="absolute inset-y-0 right-6 text-slate-300 hover:text-slate-500 font-black text-xs uppercase tracking-widest"
+            >
+              Xóa
+            </button>
+          )}
+        </div>
+
         {/* SUBMISSIONS LIST */}
         {submissions.length === 0 ? (
           <div className="bg-white p-20 rounded-[3rem] text-center border-2 border-dashed border-slate-200">
@@ -149,7 +195,7 @@ const SubmissionList = () => {
           </div>
         ) : (
           <div className="grid gap-4">
-            {submissions.map((sub, index) => (
+            {filteredSubmissions.map((sub, index) => (
               <motion.div
                 key={sub._id}
                 initial={{ opacity: 0, x: -20 }}
