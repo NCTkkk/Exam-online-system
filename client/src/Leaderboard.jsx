@@ -19,11 +19,13 @@ const Leaderboard = () => {
   const [selectedSubject, setSelectedSubject] = useState("");
 
   useEffect(() => {
-    axios.get("http://localhost:5000/api/exams").then((res) => {
-      // KIỂM TRA 1: Dữ liệu thô từ server trả về có trường subject không?
+    axios
+      .get("https://exam-online-system-p6yp.onrender.com/api/exams")
+      .then((res) => {
+        // KIỂM TRA 1: Dữ liệu thô từ server trả về có trường subject không?
 
-      setExams(res.data);
-    });
+        setExams(res.data);
+      });
   }, []);
 
   const subjects = [...new Set(exams.map((ex) => ex.subject).filter(Boolean))];
@@ -42,7 +44,7 @@ const Leaderboard = () => {
     setLoading(true);
     try {
       const res = await axios.get(
-        `http://localhost:5000/api/submissions/leaderboard/${examId}`,
+        `https://exam-online-system-p6yp.onrender.com/api/submissions/leaderboard/${examId}`,
       );
       setRankings(res.data);
     } catch (err) {

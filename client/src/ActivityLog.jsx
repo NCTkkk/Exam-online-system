@@ -22,7 +22,7 @@ const ActivityLog = () => {
         setLoading(true);
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "http://localhost:5000/api/submissions/my-results",
+          "https://exam-online-system-p6yp.onrender.com/api/submissions/my-results",
           {
             headers: { Authorization: `Bearer ${token}` },
           },

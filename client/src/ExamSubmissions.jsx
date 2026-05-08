@@ -37,7 +37,7 @@ const ExamSubmissions = () => {
       try {
         // 1. Gọi API lấy danh sách bài nộp
         const resSubmissions = await axios.get(
-          `http://localhost:5000/api/submissions/exam/${examId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(resSubmissions.data);
@@ -45,7 +45,7 @@ const ExamSubmissions = () => {
         // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
         // Giả sử bạn có route: GET /api/exams/:id
         const resExam = await axios.get(
-          `http://localhost:5000/api/exams/${examId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setExamTitle(resExam.data.title);

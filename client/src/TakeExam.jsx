@@ -26,9 +26,12 @@ const TakeExam = () => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         setExam(res.data);
         setTimeLeft(res.data.duration * 60);
       } catch (err) {
@@ -108,7 +111,7 @@ const TakeExam = () => {
 
     try {
       await axios.post(
-        `http://localhost:5000/api/submissions/submit`,
+        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
         {
           examId: id,
           answers: formattedAnswers,
