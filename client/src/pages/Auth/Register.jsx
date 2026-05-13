@@ -31,7 +31,10 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post("http://localhost:5000/api/auth/register", formData);
+      await axios.post(
+        "https://exam-online-system-p6yp.onrender.com/api/auth/register",
+        formData,
+      );
       alert("🎉 Chúc mừng! Đăng ký thành công.");
       navigate("/login");
     } catch (err) {

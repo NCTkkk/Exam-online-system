@@ -26,7 +26,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "http://localhost:5000/api/users/change-password",
+        "https://exam-online-system-p6yp.onrender.com/api/users/change-password",
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } },
       );

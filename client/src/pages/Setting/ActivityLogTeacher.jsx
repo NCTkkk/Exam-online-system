@@ -26,7 +26,7 @@ const ActivityLogTeacher = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        "http://localhost:5000/api/submissions/teacher/activity-log",
+        "https://exam-online-system-p6yp.onrender.com/api/submissions/teacher/activity-log",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
