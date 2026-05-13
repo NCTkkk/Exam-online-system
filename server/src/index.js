@@ -24,6 +24,11 @@ app.use("/api/exams", examRoute);
 app.use("/api/submissions", Submission);
 app.use("/api/users", userRoute);
 
+app.use((req, res, next) => {
+  console.log(`>>> REQUEST: ${req.method} ${req.url}`);
+  next();
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () =>
   console.log(`🚀 Server running on http://localhost:${PORT}`),

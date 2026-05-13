@@ -18,12 +18,12 @@ import { useNavigate } from "react-router-dom";
 const CreateExam = () => {
   const [title, setTitle] = useState("");
   const [duration, setDuration] = useState(60);
+  const [maxAttempts, setMaxAttempts] = useState(0);
   const [questions, setQuestions] = useState([]);
   const [previewIdx, setPreviewIdx] = useState(null);
-
   const [subject, setSubject] = useState("");
-
   const lastFocusedElement = useRef(null);
+
   const navigate = useNavigate();
 
   // Ghi nhận ô nhập liệu cuối cùng để biết apply format vào đâu
@@ -146,7 +146,7 @@ const CreateExam = () => {
       const token = localStorage.getItem("token");
       await axios.post(
         "https://exam-online-system-p6yp.onrender.com/api/exams/create",
-        { title, subject, duration, questions },
+        { title, subject, duration, maxAttempts, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Đề thi đã được lưu thành công!");
@@ -197,23 +197,35 @@ const CreateExam = () => {
           </button>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
+          {/* Thời gian */}
           <div className="bg-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-slate-600 border border-slate-200 shadow-sm">
             <HiOutlineClock className="text-indigo-500" />
             <input
               type="number"
-              className="w-12 bg-transparent outline-none text-center"
+              className="w-10 bg-transparent outline-none text-center"
               value={duration}
               onChange={(e) => setDuration(e.target.value)}
             />
-            <span className="text-sm">phút</span>
+            <span className="text-[10px] uppercase">Phút</span>
           </div>
-          <button
-            onClick={handleSubmit}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95"
-          >
-            <HiOutlineRocketLaunch /> LƯU ĐỀ
-          </button>
+
+          {/* Số lần thi - MỚI */}
+          <div className="bg-white px-4 py-2 rounded-xl flex items-center gap-2 font-bold text-slate-600 border border-slate-200 shadow-sm">
+            <HiOutlinePencilSquare className="text-emerald-500" />
+            <select
+              className="bg-transparent outline-none text-sm cursor-pointer"
+              value={maxAttempts}
+              onChange={(e) => setMaxAttempts(Number(e.target.value))}
+            >
+              <option value={0}>♾️ Vô hạn</option>
+              {[1, 2, 3, 4, 5, 10].map((num) => (
+                <option key={num} value={num}>
+                  {num} lần
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 
@@ -235,8 +247,6 @@ const CreateExam = () => {
 
                   let foundElementId = null;
 
-                  // Duyệt qua danh sách câu hỏi để xác định vị trí hiển thị thực tế
-                  // Sửa lại logic trong onKeyDown của Sidebar:
                   questions.forEach((q, qIdx) => {
                     const startNum = getQuestionDisplayNum(qIdx);
 
@@ -264,7 +274,6 @@ const CreateExam = () => {
                         block: "center",
                       });
 
-                      // Thêm hiệu ứng highlight (vòng sáng) để người dùng dễ nhận diện
                       el.classList.add(
                         "ring-4",
                         "ring-indigo-400",

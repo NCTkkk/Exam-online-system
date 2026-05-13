@@ -8,12 +8,12 @@ import {
   HiOutlineBadgeCheck,
   HiOutlineSearchCircle,
   HiOutlineClock,
-  HiOutlineSearch, // Thêm icon kính lúp
+  HiOutlineSearch,
   HiOutlineFilter,
   HiOutlineRefresh,
 } from "react-icons/hi";
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ViewResults = () => {
   const [results, setResults] = useState([]);

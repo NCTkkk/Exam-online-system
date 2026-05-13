@@ -167,40 +167,6 @@ const LogoDesignLab = () => {
         }}
       ></div>
     </div>
-
-    // <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-slate-900/90 backdrop-blur-2xl px-8 py-4 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.3)] z-[100] flex items-center gap-6 md:gap-10 border border-white/10 transition-all hover:scale-105">
-    //   <button className="text-slate-400 flex flex-col items-center gap-1 group hover:text-emerald-400 transition-all">
-    //     <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-emerald-500/20 group-hover:scale-110 transition-all">
-    //       <HiOutlineCheckBadge size={28} />
-    //     </div>
-    //     <span className="text-[9px] font-black uppercase tracking-tighter">
-    //       Trắc nghiệm
-    //     </span>
-    //   </button>
-    //   <div className="w-px h-10 bg-white/10 hidden md:block"></div>
-    //   <button className="text-slate-400 flex flex-col items-center gap-1 group hover:text-blue-400 transition-all">
-    //     <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-blue-500/20 group-hover:scale-110 transition-all">
-    //       <HiOutlineChatBubbleBottomCenterText size={28} />
-    //     </div>
-    //     <span className="text-[9px] font-black uppercase tracking-tighter">
-    //       Tự luận
-    //     </span>
-    //   </button>
-    //   <div className="w-px h-10 bg-white/10 hidden md:block"></div>
-    //   <button className="text-slate-400 flex flex-col items-center gap-1 group hover:text-purple-400 transition-all">
-    //     <div className="p-3 bg-white/5 rounded-2xl group-hover:bg-purple-500/20 group-hover:scale-110 transition-all">
-    //       <HiOutlineBookOpen size={28} />
-    //     </div>
-    //     <span className="text-[9px] font-black uppercase tracking-tighter">
-    //       Bài đọc
-    //     </span>
-    //   </button>
-
-    //   <button className="">
-    //     <div className=""></div>
-    //     <span className=""></span>
-    //   </button>
-    // </div>
   );
 };
 

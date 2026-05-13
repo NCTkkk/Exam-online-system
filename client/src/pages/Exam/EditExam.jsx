@@ -25,6 +25,7 @@ const EditExam = () => {
   const [previewIdx, setPreviewIdx] = useState(null);
   const lastFocusedElement = useRef(null);
   const [subject, setSubject] = useState("");
+  const [maxAttempts, setMaxAttempts] = useState(0);
 
   // 1. Tải dữ liệu cũ
   useEffect(() => {
@@ -41,6 +42,7 @@ const EditExam = () => {
         setDuration(res.data.duration);
         setSubject(res.data.subject || "");
         setQuestions(res.data.questions || []);
+        setMaxAttempts(res.data.maxAttempts || 0);
       } catch (err) {
         alert("Không thể tải dữ liệu đề thi");
       }
@@ -173,7 +175,7 @@ const EditExam = () => {
       const token = localStorage.getItem("token");
       await axios.put(
         `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-        { title, subject, duration, questions },
+        { title, subject, duration, maxAttempts, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Cập nhật đề thi thành công!");
@@ -234,19 +236,43 @@ const EditExam = () => {
           </div>
 
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-xl">
-              <HiOutlineClock className="text-slate-400" />
-              <input
-                type="number"
-                className="bg-transparent w-10 font-bold text-center outline-none"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-              />
-              <span className="text-[10px] font-bold text-slate-400">PHÚT</span>
+            {/* Nhóm Thời gian & Số lần thi */}
+            <div className="flex items-center gap-2 bg-slate-50 border px-3 py-1.5 rounded-xl shadow-inner">
+              {/* Thời gian */}
+              <div className="flex items-center gap-1 border-r pr-2 border-slate-200">
+                <HiOutlineClock className="text-slate-400" />
+                <input
+                  type="number"
+                  className="bg-transparent w-8 font-bold text-center outline-none text-sm"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                />
+                <span className="text-[9px] font-black text-slate-400 uppercase">
+                  Phút
+                </span>
+              </div>
+
+              {/* Số lần thi - MỚI */}
+              <div className="flex items-center gap-1 pl-1">
+                <HiOutlinePencilSquare className="text-emerald-500" size={16} />
+                <select
+                  className="bg-transparent outline-none text-[11px] font-black text-slate-600 cursor-pointer uppercase"
+                  value={maxAttempts}
+                  onChange={(e) => setMaxAttempts(Number(e.target.value))}
+                >
+                  <option value={0}>♾️ Vô hạn</option>
+                  {[1, 2, 3, 4, 5, 10].map((num) => (
+                    <option key={num} value={num}>
+                      {num} Lần
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
+
             <button
               onClick={handleUpdate}
-              className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg transition-all"
+              className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 hover:bg-indigo-700 shadow-lg transition-all active:scale-95"
             >
               <HiOutlineCheckBadge size={20} /> CẬP NHẬT
             </button>
@@ -265,65 +291,6 @@ const EditExam = () => {
               type="number"
               placeholder="#"
               className="w-14 h-14 bg-slate-100 border-2 border-transparent rounded-2xl text-center text-indigo-600 font-black text-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none placeholder:text-slate-300"
-              // onKeyDown={(e) => {
-              //   if (e.key === "Enter") {
-              //     const targetNum = parseInt(e.target.value);
-              //     if (isNaN(targetNum)) return;
-
-              //     let foundElementId = null;
-
-              //     // Duyệt qua danh sách câu hỏi để tìm vị trí
-              //     questions.forEach((q, qIdx) => {
-              //       // Hàm getQuestionDisplayNum(qIdx) sẽ trả về số thứ tự hiển thị của câu/cụm đó
-              //       const startNum = getQuestionDisplayNum(qIdx);
-
-              //       if (q.type === "passage_group") {
-              //         // Tính dải câu hỏi của bài đọc: từ startNum đến startNum + số câu con - 1
-              //         const numSub = q.subQuestions?.length || 0;
-              //         const endNum = startNum + numSub - 1;
-
-              //         // Nếu số người dùng nhập nằm trong khoảng của bài đọc này
-              //         if (targetNum >= startNum && targetNum <= endNum) {
-              //           foundElementId = `question-${q.id || qIdx}`;
-              //         }
-              //       } else {
-              //         // Đối với câu đơn
-              //         if (startNum === targetNum) {
-              //           foundElementId = `question-${q.id || qIdx}`;
-              //         }
-              //       }
-              //     });
-
-              //     if (foundElementId) {
-              //       const el = document.getElementById(foundElementId);
-              //       if (el) {
-              //         el.scrollIntoView({
-              //           behavior: "smooth",
-              //           block: "center",
-              //         });
-
-              //         // Hiệu ứng Highlight để dễ nhận diện câu vừa tìm thấy
-              //         el.classList.add(
-              //           "ring-4",
-              //           "ring-indigo-500",
-              //           "ring-offset-2",
-              //           "transition-all",
-              //         );
-              //         setTimeout(() => {
-              //           el.classList.remove(
-              //             "ring-4",
-              //             "ring-indigo-500",
-              //             "ring-offset-2",
-              //           );
-              //         }, 2000);
-              //       }
-              //       e.target.value = ""; // Xóa số sau khi tìm xong
-              //       e.target.blur();
-              //     } else {
-              //       alert(`Không tìm thấy câu hỏi số ${targetNum}`);
-              //     }
-              //   }
-              // }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   const targetNum = parseInt(e.target.value);
@@ -331,9 +298,7 @@ const EditExam = () => {
 
                   let foundElementId = null;
 
-                  // Duyệt qua mảng questions để tìm xem số targetNum nằm ở đâu
                   questions.forEach((q, qIdx) => {
-                    // Giả sử getQuestionDisplayNum(qIdx) trả về số bắt đầu của cụm đó
                     const startNum = getQuestionDisplayNum(qIdx);
 
                     if (q.type === "passage_group") {
@@ -357,11 +322,10 @@ const EditExam = () => {
                     if (el) {
                       el.scrollIntoView({
                         behavior: "smooth",
-                        block: "center", // Đưa vào giữa màn hình để không bị Header che
+                        block: "center",
                       });
 
-                      // Hiệu ứng Highlight để giáo viên dễ thấy
-                      el.style.ringWidth = "4px"; // Nếu dùng Tailwind thì dùng classList
+                      el.style.ringWidth = "4px";
                       el.classList.add(
                         "ring-4",
                         "ring-purple-500",

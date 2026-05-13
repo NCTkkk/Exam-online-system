@@ -10,9 +10,8 @@ import {
   HiOutlineFilter,
   HiShieldCheck,
 } from "react-icons/hi";
-// Import các công cụ phân trang dùng chung
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -58,7 +57,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- 1. LOGIC LỌC DỮ LIỆU (Giữ nguyên logic của bạn) ---
+  // --- 1. LOGIC LỌC DỮ LIỆU ---
   const filteredData = users
     .filter((u) => {
       const searchLower = searchTerm.toLowerCase().trim();
