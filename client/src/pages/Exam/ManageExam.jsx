@@ -12,9 +12,10 @@ import {
   HiOutlineTrash,
   HiOutlineCheckBadge,
   HiOutlineMagnifyingGlass,
+  HiOutlineArrowPath,
 } from "react-icons/hi2";
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ManageExams = () => {
   const [exams, setExams] = useState([]);
@@ -24,22 +25,15 @@ const ManageExams = () => {
   useEffect(() => {
     const fetchMyExams = async () => {
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "https://exam-online-system-p6yp.onrender.com/api/exams/my-exams",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await axios.get("http://localhost:5000/api/exams/my-exams", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setExams(res.data);
     };
     fetchMyExams();
   }, []);
 
-  // const filteredExams = exams.filter((exam) =>
-  //   exam.title.toLowerCase().includes(searchTerm.toLocaleLowerCase()),
-  // );
-
-  const [subjectFilter, setSubjectFilter] = useState(""); // Đừng quên thêm state này ở trên
+  const [subjectFilter, setSubjectFilter] = useState("");
 
   const filteredExams = React.useMemo(() => {
     // Bước 1: Lấy danh sách gốc
@@ -70,7 +64,6 @@ const ManageExams = () => {
         const indexA = titleA.indexOf(search);
         const indexB = titleB.indexOf(search);
 
-        // Giữ nguyên logic cũ của bạn:
         // 1. Ưu tiên vị trí xuất hiện của từ khóa
         if (indexA !== indexB) {
           return indexA - indexB;
@@ -78,7 +71,7 @@ const ManageExams = () => {
         // 2. Ưu tiên tiêu đề ngắn hơn
         return titleA.length - titleB.length;
       });
-  }, [exams, searchTerm, subjectFilter]); // Thêm subjectFilter vào dependency array
+  }, [exams, searchTerm, subjectFilter]);
 
   const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
     filteredExams,
@@ -97,12 +90,9 @@ const ManageExams = () => {
     ) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        await axios.delete(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setExams(exams.filter((e) => e._id !== id));
       } catch (err) {
         alert("Lỗi: " + (err.response?.data || "Không thể xóa"));
@@ -217,10 +207,23 @@ const ManageExams = () => {
 
                       {/* Thông tin Thời gian và Ngày tạo (Đã khôi phục) */}
                       <div className="flex flex-wrap items-center gap-4 text-slate-400 font-bold text-xs uppercase tracking-widest ml-1">
+                        {/* thời gian thi tối đa */}
                         <div className="flex items-center gap-1.5">
                           <HiOutlineClock size={16} />
                           {examItem.duration} PHÚT
                         </div>
+
+                        {/* tối đa lượt thi */}
+                        <div className="flex items-center gap-1.5 border-l pl-4 text-rose-500">
+                          <HiOutlineArrowPath size={16} strokeWidth={2.5} />
+                          <span className="font-black">
+                            {examItem.maxAttempts > 0
+                              ? `TỐI ĐA: ${examItem.maxAttempts} LẦN`
+                              : "KHÔNG GIỚI HẠN"}
+                          </span>
+                        </div>
+
+                        {/* thời gian tạo */}
                         <div className="flex items-center gap-1.5 border-l pl-4">
                           <HiOutlineCalendar size={16} />
                           {new Date(examItem.createdAt).toLocaleDateString(

@@ -8,12 +8,12 @@ import {
   HiOutlineBadgeCheck,
   HiOutlineSearchCircle,
   HiOutlineClock,
-  HiOutlineSearch, // Thêm icon kính lúp
+  HiOutlineSearch,
   HiOutlineFilter,
   HiOutlineRefresh,
 } from "react-icons/hi";
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ViewResults = () => {
   const [results, setResults] = useState([]);
@@ -31,7 +31,7 @@ const ViewResults = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/submissions/my-results",
+          "http://localhost:5000/api/submissions/my-results",
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setResults(res.data);

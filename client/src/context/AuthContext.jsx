@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
   };
 
-  // Đồng bộ đăng xuất giữa các Tab (Tùy chọn nhưng nên có)
+  // Đồng bộ đăng xuất giữa các Tab
   useEffect(() => {
     const handleStorageChange = (e) => {
       if (e.key === "token" && !e.newValue) {

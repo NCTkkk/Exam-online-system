@@ -10,9 +10,8 @@ import {
   HiOutlineFilter,
   HiShieldCheck,
 } from "react-icons/hi";
-// Import các công cụ phân trang dùng chung
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const AdminDashboard = () => {
   const [users, setUsers] = useState([]);
@@ -23,12 +22,9 @@ const AdminDashboard = () => {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const res = await axios.get(
-        "https://exam-online-system-p6yp.onrender.com/api/users",
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      const res = await axios.get("http://localhost:5000/api/users", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUsers(res.data);
     } catch (err) {
       console.error("Lỗi lấy danh sách:", err);
@@ -45,12 +41,9 @@ const AdminDashboard = () => {
     if (window.confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(
-          `https://exam-online-system-p6yp.onrender.com/api/users/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        await axios.delete(`http://localhost:5000/api/users/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUsers(users.filter((u) => u._id !== id));
       } catch (err) {
         alert("Lỗi: " + (err.response?.data || "Không có quyền"));
@@ -58,7 +51,7 @@ const AdminDashboard = () => {
     }
   };
 
-  // --- 1. LOGIC LỌC DỮ LIỆU (Giữ nguyên logic của bạn) ---
+  // --- 1. LOGIC LỌC DỮ LIỆU ---
   const filteredData = users
     .filter((u) => {
       const searchLower = searchTerm.toLowerCase().trim();

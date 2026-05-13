@@ -21,22 +21,74 @@ const TakeExam = () => {
   const timerRef = useRef();
   const [warningCount, setWarningCount] = useState(0); // Đếm số lần cảnh báo chuyển tab
 
+  // AUTO-SUBMIT KHI THOÁT TRANG
+  const timeRef = useRef();
+  const answersRef = useRef({});
+  const timeLeftRef = useRef(0);
+  const isSubmittingRef = useRef(false);
+  const examRef = useRef(null);
+
+  // Cập nhật Refs mỗi khi State thay đổi
+  useEffect(() => {
+    answersRef.current = answers;
+  }, [answers]);
+  useEffect(() => {
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+  useEffect(() => {
+    isSubmittingRef.current = isSubmitting;
+  }, [isSubmitting]);
+  useEffect(() => {
+    examRef.current = exam;
+  }, [exam]);
+
+  // Hàm nộp bài "khẩn cấp" khi người dùng cố tình thoát trang
+  const emergencySubmit = async () => {
+    // Nếu đang trong quá trình nộp rồi hoặc chưa tải xong đề thì bỏ qua
+    if (isSubmittingRef.current || !examRef.current) return;
+
+    isSubmittingRef.current = true; // Chặn các luồng nộp bài khác
+    const token = localStorage.getItem("token");
+
+    const formattedAnswers = Object.entries(answersRef.current).map(
+      ([key, value]) => ({
+        questionId: key,
+        content: value,
+      }),
+    );
+
+    const data = {
+      examId: id,
+      answers: formattedAnswers,
+      timeSpent: examRef.current.duration * 60 - timeLeftRef.current,
+    };
+
+    try {
+      // Sử dụng axios để nộp bài
+      await axios.post(`http://localhost:5000/api/submissions/submit`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      console.log("Auto-submitted due to exit");
+    } catch (e) {
+      console.error("Auto-submit failed", e);
+    }
+  };
+
   // 1. Logic Fetch Data
   useEffect(() => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
         setExam(res.data);
         setTimeLeft(res.data.duration * 60);
       } catch (err) {
-        console.error("Fetch error:", err);
-        alert("Không thể tải đề thi. Vui lòng kiểm tra kết nối!");
+        const msg = err.response?.data?.message || "Không thể tải đề thi";
+        alert(msg);
+        navigate("/exam-list");
       }
     };
     if (id) fetchExam();
@@ -47,7 +99,7 @@ const TakeExam = () => {
     document.addEventListener("visibilitychange", handleVisibility);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibility);
-  }, [id]);
+  }, [id, navigate]);
 
   // 2. Logic Timer
   useEffect(() => {
@@ -66,7 +118,6 @@ const TakeExam = () => {
   useEffect(() => {
     const handleVisibility = () => {
       if (document.hidden) {
-        // Chỉ tăng biến đếm, không để alert hay navigate ở đây
         setWarningCount((prev) => prev + 1);
       }
     };
@@ -93,6 +144,27 @@ const TakeExam = () => {
     }
   }, [warningCount, navigate]);
 
+  useEffect(() => {
+    // 1. Sự kiện tắt Tab hoặc F5 trình duyệt
+    const handleBeforeUnload = (e) => {
+      if (!isSubmittingRef.current) {
+        emergencySubmit(); // Gọi nộp bài
+        e.preventDefault();
+        e.returnValue = ""; // Hiển thị thông báo xác nhận của trình duyệt
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    // 2. Sự kiện chuyển trang TRONG ứng dụng (VD: nhấn link menu, nhấn Back)
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      if (!isSubmittingRef.current && examRef.current) {
+        emergencySubmit();
+      }
+    };
+  }, [id]);
+
   const handleAnswerChange = (qId, value) => {
     setAnswers((prev) => ({ ...prev, [qId]: value }));
   };
@@ -100,10 +172,10 @@ const TakeExam = () => {
   const processSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    isSubmittingRef.current = true;
     clearInterval(timerRef.current);
 
     const token = localStorage.getItem("token");
-    // Kiểm tra kỹ định dạng ID (q._id hoặc q.id)
     const formattedAnswers = Object.entries(answers).map(([key, value]) => ({
       questionId: key,
       content: value,
@@ -111,7 +183,7 @@ const TakeExam = () => {
 
     try {
       await axios.post(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
+        `http://localhost:5000/api/submissions/submit`,
         {
           examId: id,
           answers: formattedAnswers,
@@ -120,9 +192,10 @@ const TakeExam = () => {
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("Đã nộp bài thành công!");
-      navigate("/view-results");
+      navigate("/view-results", { replace: true });
     } catch (err) {
       setIsSubmitting(false);
+      isSubmittingRef.current = false;
       const errMsg = err.response?.data?.message || err.message;
       alert("Lỗi khi nộp bài: " + errMsg);
     }
@@ -172,6 +245,17 @@ const TakeExam = () => {
               <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
                 Đang thực hiện
               </p>
+
+              <div className="flex flex-col items-end">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                  Lượt thi
+                </div>
+                <div className="text-sm font-bold text-slate-700">
+                  {exam.maxAttempts > 0
+                    ? `Tối đa ${exam.maxAttempts} lần`
+                    : "Vô tận"}
+                </div>
+              </div>
             </div>
           </div>
           <div
@@ -187,17 +271,7 @@ const TakeExam = () => {
       </div>
 
       <div className="max-w-7xl mx-auto mt-10 px-4 space-y-12">
-        {/* <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3 text-amber-700 text-sm font-medium"
-        >
-          <HiOutlineExclamationTriangle size={20} /> Hệ thống đang giám sát.
-          Không chuyển tab.
-        </motion.div> */}
-
         {exam.questions.map((q, idx) => {
-          // Unique ID check: Ưu tiên dùng _id nếu có, không thì dùng id
           const mainId = q._id || q.id;
 
           if (q.type === "instruction") {
@@ -274,9 +348,7 @@ const TakeExam = () => {
                             >
                               <input
                                 type="radio"
-                                // 1. Đảm bảo name là duy nhất cho nhóm câu hỏi phụ
                                 name={`sub-question-${subId || sIdx}`}
-                                // 2. Chặn trình duyệt "đoán" đáp án cũ
                                 autoComplete="off"
                                 checked={answers[subId] === opt}
                                 onChange={() => handleAnswerChange(subId, opt)}
@@ -330,9 +402,7 @@ const TakeExam = () => {
                     >
                       <input
                         type="radio"
-                        // Đảm bảo name luôn tồn tại và duy nhất, kể cả khi thiếu ID
                         name={`question-${mainId || idx}`}
-                        // Chặn trình duyệt tự động điền (nguyên nhân gây nhảy đáp án D)
                         autoComplete="off"
                         checked={answers[mainId] === opt}
                         onChange={() => handleAnswerChange(mainId, opt)}
@@ -388,7 +458,6 @@ const TakeExam = () => {
                   let targetId = null;
                   let currentNum = 0;
 
-                  // Sử dụng exam.questions thay vì questions
                   exam?.questions?.forEach((q) => {
                     if (q.type === "instruction") return;
                     if (q.type === "passage_group") {

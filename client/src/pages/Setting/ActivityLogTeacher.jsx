@@ -6,9 +6,8 @@ import {
   HiOutlineAdjustments,
 } from "react-icons/hi";
 import { useNavigate } from "react-router-dom";
-// Import các phần đã tách
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ActivityLogTeacher = () => {
   const [logs, setLogs] = useState([]);
@@ -27,7 +26,7 @@ const ActivityLogTeacher = () => {
     try {
       setLoading(true);
       const res = await axios.get(
-        "https://exam-online-system-p6yp.onrender.com/api/submissions/teacher/activity-log",
+        "http://localhost:5000/api/submissions/teacher/activity-log",
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,

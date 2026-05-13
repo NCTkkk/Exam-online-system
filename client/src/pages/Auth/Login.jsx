@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import axios from "axios";
-import { AuthContext } from "./context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { HiOutlineMail, HiOutlineLockClosed } from "react-icons/hi";
 import {
@@ -28,13 +28,10 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await axios.post(
-        "https://exam-online-system-p6yp.onrender.com/api/auth/login",
-        {
-          email,
-          password,
-        },
-      );
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
+      });
       login(res.data);
       const userRole = res.data.user.role;
       if (userRole === "user") navigate("/teacher-dashboard");

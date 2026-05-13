@@ -26,7 +26,7 @@ const SubmissionList = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+          `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(res.data);
@@ -300,7 +300,6 @@ const SubmissionList = () => {
 
                   <button
                     onClick={() => navigate(`/grade-submission/${sub._id}`)}
-                    // onClick={() => navigate(`/grade/${sub._id}`)}
                     className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${
                       sub.status === "graded"
                         ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100"

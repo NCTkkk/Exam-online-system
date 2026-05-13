@@ -1,9 +1,9 @@
 import React, { useEffect, useState, useContext, useMemo } from "react";
 import axios from "axios";
-import { AuthContext } from "./context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { Link } from "react-router-dom";
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ActivityLog = () => {
   const [activities, setActivities] = useState([]);
@@ -22,7 +22,7 @@ const ActivityLog = () => {
         setLoading(true);
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/submissions/my-results",
+          "http://localhost:5000/api/submissions/my-results",
           {
             headers: { Authorization: `Bearer ${token}` },
           },

@@ -6,16 +6,21 @@ const examSchema = new mongoose.Schema(
     author: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     subject: { type: String, required: true },
     duration: { type: Number, required: true },
+
+    maxAttempts: {
+      type: Number,
+      default: 0,
+    },
+
     questions: [
       {
         type: {
           type: String,
-          // THÊM: "passage_group" vào enum
           enum: ["multiple_choice", "essay", "passage_group", "instruction"],
           required: true,
         },
         content: String, // Tiêu đề câu hỏi hoặc Yêu cầu bài đọc
-        passage: String, // THÊM: Nội dung đoạn văn Tiếng Anh
+        passage: String, // Nội dung đoạn văn Tiếng Anh
         options: [String],
         correctAnswer: String,
         points: { type: Number, default: 1 },

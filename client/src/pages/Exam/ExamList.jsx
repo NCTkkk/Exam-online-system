@@ -10,8 +10,8 @@ import {
   HiOutlineUser,
   HiOutlineFilter,
 } from "react-icons/hi";
-import { usePagination } from "./usePagination";
-import Pagination from "./Pagination";
+import { usePagination } from "../../components/common/usePagination";
+import Pagination from "../../components/common/Pagination";
 
 const ExamList = () => {
   const [exams, setExams] = useState([]);
@@ -26,12 +26,13 @@ const ExamList = () => {
     const fetchExams = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/exams/all",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get("http://localhost:5000/api/exams/all", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+
+        console.log("--- DỮ LIỆU TỪ SERVER TRẢ VỀ ---");
+        console.log(res.data);
+
         setExams(res.data);
       } catch (err) {
         console.error("Lỗi lấy đề thi:", err);
@@ -69,7 +70,7 @@ const ExamList = () => {
       result = result.filter((exam) => exam.duration <= parseInt(maxDuration));
     }
 
-    // 4. Lọc và Sắp xếp theo Tên đề thi (Logic cũ của bạn)
+    // 4. Lọc và Sắp xếp theo Tên đề thi
     if (!searchTerm.trim()) return result;
 
     const search = searchTerm.toLowerCase();
@@ -143,7 +144,7 @@ const ExamList = () => {
                   onChange={(e) => {
                     setAuthorSearch(e.target.value);
                     jump(1);
-                  }} // Sửa lỗi ở đây
+                  }}
                   className="w-full pl-9 pr-3 py-2 bg-white border border-slate-100 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-600 placeholder:text-slate-300 text-xs"
                 />
               </div>
@@ -287,6 +288,38 @@ const ExamList = () => {
                           </div>
                           <span>
                             Số câu hỏi: {exam.questions?.length || 0} câu
+                          </span>
+                        </div>
+
+                        {/*  */}
+                        <div className="flex items-center gap-3 text-slate-500 font-bold text-sm">
+                          <div className="p-2 bg-slate-100 rounded-lg text-rose-500">
+                            <svg
+                              className="w-[18px] h-[18px]"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                              />
+                            </svg>
+                          </div>
+                          <span
+                            className={`font-bold ${
+                              exam.maxAttempts > 0 &&
+                              exam.maxAttempts - (exam.currentAttempts || 0) ===
+                                0
+                                ? "text-red-500"
+                                : "text-slate-600"
+                            }`}
+                          >
+                            {exam.maxAttempts > 0
+                              ? `Còn lại: ${exam.maxAttempts - (exam.currentAttempts || 0)}/${exam.maxAttempts}`
+                              : "Lượt thi: Không giới hạn"}
                           </span>
                         </div>
 

@@ -1,6 +1,6 @@
 import React, { useState, useContext } from "react";
 import axios from "axios";
-import { AuthContext } from "./context/AuthContext";
+import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
 import {
   HiOutlineLockClosed,
@@ -26,7 +26,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "https://exam-online-system-p6yp.onrender.com/api/users/change-password",
+        "http://localhost:5000/api/users/change-password",
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } },
       );

@@ -21,7 +21,7 @@ const ReviewResult = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${id}`,
+          `http://localhost:5000/api/submissions/detail/${id}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -32,9 +32,7 @@ const ReviewResult = () => {
 
         setResult(res.data);
       } catch (err) {
-        // alert("Không thể tải chi tiết bài làm");
         console.error("Lỗi fetch:", err);
-        // Nếu lỗi 404 (không tìm thấy submission), ta cũng có thể coi là dữ liệu lỗi
         if (err.response?.status === 404) {
           setIsExamDeleted(true);
           setResult({}); // Set object rỗng để thoát khỏi màn hình Loading

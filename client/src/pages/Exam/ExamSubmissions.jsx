@@ -37,21 +37,19 @@ const ExamSubmissions = () => {
       try {
         // 1. Gọi API lấy danh sách bài nộp
         const resSubmissions = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+          `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(resSubmissions.data);
 
         // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
-        // Giả sử bạn có route: GET /api/exams/:id
         const resExam = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
+          `http://localhost:5000/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setExamTitle(resExam.data.title);
       } catch (err) {
         console.error("Lỗi lấy dữ liệu:", err);
-        // Nếu API Exam lỗi (đề bị xóa), hãy lấy từ bài nộp đầu tiên như phương án dự phòng
         if (submissions.length > 0) {
           setExamTitle(submissions[0].exam?.title || "Đề thi đã bị xóa");
         } else {

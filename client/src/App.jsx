@@ -1,32 +1,31 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import Login from "./Login";
-import Register from "./Register";
-import CreateExam from "./CreateExam";
-import ExamList from "./ExamList";
-import TakeExam from "./TakeExam";
-import ManageExam from "./ManageExam";
-import GradeExam from "./GradeExam";
-import ReviewResult from "./ReviewResult";
-import Navbar from "./components/Navbar";
-import ViewResults from "./ViewResults";
+import Login from "./pages/Auth/Login";
+import Register from "./pages/Auth/Register";
+import CreateExam from "./pages/Exam/CreateExam";
+import ExamList from "./pages/Exam/ExamList";
+import TakeExam from "./pages/Exam/TakeExam";
+import ManageExam from "./pages/Exam/ManageExam";
+import GradeExam from "./pages/Submissions/GradeExam";
+import ReviewResult from "./pages/Submissions/ReviewResult";
+import Navbar from "./components/layout/Navbar";
+import ViewResults from "./pages/Submissions/ViewResults";
 import ProtectedRoute from "./components/ProtectedRoute";
-import EditExam from "./EditExam";
-import StudentDashboard from "./StudentDashboard";
-import TeacherDashboard from "./TeacherDashboard";
-import Leaderboard from "./Leaderboard";
-import Profile from "./Profile";
-import AdminDashboard from "./AdminDashboard";
-import ExamSubmissions from "./ExamSubmissions";
-import GradeSubmission from "./GradeSubmission";
-import SubmissionList from "./SubmissionList";
-import Footer from "./components/Footer";
-import LogoDesignLab from "./components/LogoDesignLab";
-import ActivityLog from "./ActivityLog";
-import UISettings from "./UISettings";
-import ActivityLogTeacher from "./ActivityLogTeacher";
+import EditExam from "./pages/Exam/EditExam";
+import StudentDashboard from "./pages/Dashboard/StudentDashboard";
+import TeacherDashboard from "./pages/Dashboard/TeacherDashboard";
+import Leaderboard from "./pages/Leaderboard";
+import Profile from "./pages/Setting/Profile";
+import AdminDashboard from "./pages/Dashboard/AdminDashboard";
+import ExamSubmissions from "./pages/Exam/ExamSubmissions";
+import GradeSubmission from "./pages/Submissions/GradeSubmission";
+import SubmissionList from "./pages/Submissions/SubmissionList";
+import Footer from "./components/layout/Footer";
+import LogoDesignLab from "./components/layout/LogoDesignLab";
+import ActivityLog from "./pages/Setting/ActivityLog";
+import UISettings from "./pages/Setting/UISettings";
+import ActivityLogTeacher from "./pages/Setting/ActivityLogTeacher";
 
-// Component Layout chung để tái sử dụng Navbar và Footer
 const MainLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col bg-slate-50/50">
     <Navbar />

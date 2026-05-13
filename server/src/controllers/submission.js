@@ -31,8 +31,30 @@ const findQuestionInExam = (exam, questionId) => {
 const submitExam = async (req, res) => {
   try {
     const { examId, answers, timeSpent } = req.body;
+    const studentId = req.user.id;
+
+    console.log("--- KÍCH HOẠT SUBMIT ---");
+    console.log("Học sinh:", studentId, " - Đề thi:", examId);
+
     const exam = await Exam.findById(examId);
     if (!exam) return res.status(404).json("Đề thi không tồn tại");
+
+    // Nếu maxAttempts > 0, tức là có giới hạn số lần thi
+    if (exam.maxAttempts && exam.maxAttempts > 0) {
+      // Đếm số lượng Submission hiện có của học sinh này cho đề thi này
+      const attemptCount = await Submission.countDocuments({
+        exam: examId,
+        student: studentId,
+      });
+
+      // Nếu số lần đã làm lớn hơn hoặc bằng giới hạn cho phép
+      if (attemptCount >= exam.maxAttempts) {
+        return res.status(403).json({
+          message: `Bạn đã hết lượt thi. Số lần thi tối đa cho phép là ${exam.maxAttempts} lần.`,
+        });
+      }
+      console.log("=> KẾT QUẢ: CHO PHÉP (Còn lượt)");
+    }
 
     let scoreAuto = 0;
 
@@ -95,8 +117,28 @@ const getLeaderboard = async (req, res) => {
 const getMyResults = async (req, res) => {
   try {
     const results = await Submission.find({ student: req.user.id })
-      .populate("exam", "title subject")
+      .populate("exam", "title subject maxAttempts")
       .sort({ createdAt: -1 });
+
+    const formattedResults = results.map((result) => {
+      const submissionObj = result.toObject();
+
+      // Kiểm tra nếu exam còn tồn tại (tránh lỗi nếu đề đã bị xóa)
+      if (submissionObj.exam) {
+        // Trả về thêm thông tin để FE dễ xử lý hiển thị
+        return {
+          ...submissionObj,
+          attemptInfo: {
+            max: submissionObj.exam.maxAttempts || 0, // 0 là vô tận
+            isUnlimited:
+              !submissionObj.exam.maxAttempts ||
+              submissionObj.exam.maxAttempts === 0,
+          },
+        };
+      }
+      return submissionObj;
+    });
+
     res.json(results);
   } catch (err) {
     res.status(500).json(err);
@@ -236,8 +278,6 @@ const getActivityLog = async (req, res) => {
     res.status(500).json("Lỗi server khi lấy nhật ký");
   }
 };
-
-module.exports = { getActivityLog };
 
 module.exports = {
   submitExam,

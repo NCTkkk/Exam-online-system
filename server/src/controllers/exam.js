@@ -27,10 +27,39 @@ const getMyExams = async (req, res) => {
 // 3. Lấy tất cả đề thi đã xuất bản (cho Member)
 const getAllExamsPublished = async (req, res) => {
   try {
+    const studentId = req.user.id;
+
+    console.log("--- DEBUG GET ALL EXAMS ---");
+    console.log("Đang lấy danh sách cho Student ID:", studentId);
+
     const exams = await Exam.find()
-      .select("title duration author subject")
-      .populate("author", "name");
-    res.json(exams);
+      .select("title duration author subject maxAttempts")
+      .populate("author", "name")
+      .lean();
+
+    const Submission = require("../models/Submission");
+
+    const examsWithAttemptCount = await Promise.all(
+      exams.map(async (exam) => {
+        const count = await Submission.countDocuments({
+          exam: exam._id,
+          student: studentId,
+        });
+
+        if (count > 0) {
+          console.log(
+            `Đề [${exam.title}] tìm thấy ${count} bài nộp của user này.`,
+          );
+        }
+
+        return {
+          ...exam,
+          currentAttempts: count,
+        };
+      }),
+    );
+
+    res.json(examsWithAttemptCount);
   } catch (err) {
     res.status(500).json(err);
   }
@@ -51,6 +80,22 @@ const getExamById = async (req, res) => {
   try {
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json("Không tìm thấy đề thi");
+
+    // NẾU LÀ HỌC SINH (MEMBER), KIỂM TRA LƯỢT THI TRƯỚC KHI TRẢ VỀ ĐỀ
+    if (req.user.role === "member" && exam.maxAttempts > 0) {
+      const Submission = require("../models/Submission");
+      const attemptCount = await Submission.countDocuments({
+        exam: exam._id,
+        student: req.user.id,
+      });
+
+      if (attemptCount >= exam.maxAttempts) {
+        return res.status(403).json({
+          message: `Bạn đã hết lượt làm bài thi này (Tối đa: ${exam.maxAttempts} lần).`,
+        });
+      }
+    }
+
     res.json(exam);
   } catch (err) {
     res.status(500).json(err);
