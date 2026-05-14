@@ -2,21 +2,22 @@ const Submission = require("../models/Submission");
 const Exam = require("../models/Exam");
 
 const findQuestionInExam = (exam, questionId) => {
-  // Nếu đề thi bị xóa (exam null) hoặc không có câu hỏi, trả về null luôn
-  if (!exam || !exam.questions) return null;
+  if (!exam || !exam.questions || !questionId) return null;
 
-  // Đảm bảo questionId tồn tại
-  if (!questionId) return null;
+  // 1. Ép kiểu ID về String để so sánh chính xác nhất
+  const targetId = questionId.toString();
 
+  // 2. Tìm ở cấp độ câu hỏi chính (Trắc nghiệm đơn, tự luận đơn)
   let questionData = exam.questions.find(
-    (q) => q._id.toString() === questionId.toString(),
+    (q) => q._id && q._id.toString() === targetId,
   );
 
+  // 3. Nếu không thấy, tìm sâu vào trong các nhóm bài đọc (passage_group)
   if (!questionData) {
     for (const mainQ of exam.questions) {
-      if (mainQ.type === "passage_group" && mainQ.subQuestions) {
+      if (mainQ.type === "passage_group" && Array.isArray(mainQ.subQuestions)) {
         const subQ = mainQ.subQuestions.find(
-          (sq) => sq._id.toString() === questionId.toString(),
+          (sq) => sq._id && sq._id.toString() === targetId,
         );
         if (subQ) {
           questionData = subQ;
@@ -25,29 +26,23 @@ const findQuestionInExam = (exam, questionId) => {
       }
     }
   }
+
   return questionData;
 };
-
 const submitExam = async (req, res) => {
   try {
     const { examId, answers, timeSpent } = req.body;
     const studentId = req.user.id;
 
-    console.log("--- KÍCH HOẠT SUBMIT ---");
-    console.log("Học sinh:", studentId, " - Đề thi:", examId);
-
     const exam = await Exam.findById(examId);
     if (!exam) return res.status(404).json("Đề thi không tồn tại");
 
-    // Nếu maxAttempts > 0, tức là có giới hạn số lần thi
     if (exam.maxAttempts && exam.maxAttempts > 0) {
-      // Đếm số lượng Submission hiện có của học sinh này cho đề thi này
       const attemptCount = await Submission.countDocuments({
         exam: examId,
         student: studentId,
       });
 
-      // Nếu số lần đã làm lớn hơn hoặc bằng giới hạn cho phép
       if (attemptCount >= exam.maxAttempts) {
         return res.status(403).json({
           message: `Bạn đã hết lượt thi. Số lần thi tối đa cho phép là ${exam.maxAttempts} lần.`,
@@ -55,6 +50,26 @@ const submitExam = async (req, res) => {
       }
       console.log("=> KẾT QUẢ: CHO PHÉP (Còn lượt)");
     }
+
+    let hasEssay = false;
+    if (exam.questions && exam.questions.length > 0) {
+      for (const q of exam.questions) {
+        if (q.type === "essay" || q.type === "essay") {
+          hasEssay = true;
+          break;
+        }
+        if (q.type === "passage_group" && q.subQuestions) {
+          const hasSubEssay = q.subQuestions.some(
+            (subQ) => subQ.type === "essay" || subQ.type === "essay",
+          );
+          if (hasSubEssay) {
+            hasEssay = true;
+            break;
+          }
+        }
+      }
+    }
+    const submissionStatus = hasEssay ? "pending" : "graded";
 
     let scoreAuto = 0;
 
@@ -80,11 +95,16 @@ const submitExam = async (req, res) => {
       answers: processedAnswers,
       scoreAuto,
       timeSpent: timeSpent || 0,
-      status: "graded",
+      status: submissionStatus,
     });
 
     await newSubmission.save();
-    res.status(201).json({ message: "Nộp bài thành công", scoreAuto });
+    res.status(201).json({
+      message: "Nộp bài thành công",
+      scoreAuto,
+      totalPoints: exam.totalPoints || 0,
+      status: submissionStatus,
+    });
   } catch (err) {
     res.status(500).json(err);
   }
@@ -117,19 +137,34 @@ const getLeaderboard = async (req, res) => {
 const getMyResults = async (req, res) => {
   try {
     const results = await Submission.find({ student: req.user.id })
-      .populate("exam", "title subject maxAttempts")
+      .populate("exam", "title subject maxAttempts totalPoints questions")
       .sort({ createdAt: -1 });
 
     const formattedResults = results.map((result) => {
       const submissionObj = result.toObject();
 
-      // Kiểm tra nếu exam còn tồn tại (tránh lỗi nếu đề đã bị xóa)
       if (submissionObj.exam) {
-        // Trả về thêm thông tin để FE dễ xử lý hiển thị
+        if (
+          !submissionObj.exam.totalPoints ||
+          submissionObj.exam.totalPoints === 0
+        ) {
+          let tempTotal = 0;
+          submissionObj.exam.questions?.forEach((q) => {
+            if (q.type === "passage_group") {
+              q.subQuestions?.forEach(
+                (sq) => (tempTotal += Number(sq.points || 0)),
+              );
+            } else if (q.type !== "instruction") {
+              tempTotal += Number(q.points || 0);
+            }
+          });
+          submissionObj.exam.totalPoints = tempTotal;
+        }
+
         return {
           ...submissionObj,
           attemptInfo: {
-            max: submissionObj.exam.maxAttempts || 0, // 0 là vô tận
+            max: submissionObj.exam.maxAttempts || 0,
             isUnlimited:
               !submissionObj.exam.maxAttempts ||
               submissionObj.exam.maxAttempts === 0,
@@ -139,15 +174,15 @@ const getMyResults = async (req, res) => {
       return submissionObj;
     });
 
-    res.json(results);
+    res.json(formattedResults);
   } catch (err) {
+    console.error("Lỗi getMyResults:", err);
     res.status(500).json(err);
   }
 };
 
 const gradeSubmission = async (req, res) => {
   try {
-    console.log("Dữ liệu nhận từ FE:", req.body);
     const { scoreManual, feedback, scoreManualDetails, essayAnswers } =
       req.body;
     const updatedSubmission = await Submission.findByIdAndUpdate(
@@ -187,16 +222,38 @@ const getReview = async (req, res) => {
     const submission = await Submission.findById(
       req.params.submissionId,
     ).populate("exam");
+
     if (!submission) return res.status(404).json("Không tìm thấy bài nộp");
 
     const fullData = submission.toObject();
-    fullData.answers = fullData.answers.map((ans) => ({
-      ...ans,
-      questionId: findQuestionInExam(fullData.exam, ans.questionId),
-    }));
+
+    if (
+      fullData.exam &&
+      (!fullData.exam.totalPoints || fullData.exam.totalPoints === 0)
+    ) {
+      let tempTotal = 0;
+      fullData.exam.questions?.forEach((q) => {
+        if (q.type === "passage_group") {
+          q.subQuestions?.forEach(
+            (sq) => (tempTotal += Number(sq.points || 0)),
+          );
+        } else if (q.type !== "instruction") {
+          tempTotal += Number(q.points || 0);
+        }
+      });
+      fullData.exam.totalPoints = tempTotal;
+    }
+
+    if (fullData.exam && fullData.exam.questions) {
+      fullData.answers = fullData.answers.map((ans) => ({
+        ...ans,
+        questionId: findQuestionInExam(fullData.exam, ans.questionId),
+      }));
+    }
 
     res.json(fullData);
   } catch (err) {
+    console.error("Lỗi getReview:", err);
     res.status(500).json("Lỗi server");
   }
 };
@@ -210,30 +267,42 @@ const getSubmissionDetail = async (req, res) => {
     if (!submission) return res.status(404).json("Không tìm thấy bài làm");
 
     const fullData = submission.toObject();
-    // KIỂM TRA: Nếu đề thi vẫn tồn tại mới thực hiện map câu hỏi
+
+    if (
+      fullData.exam &&
+      (fullData.exam.totalPoints === 0 || !fullData.exam.totalPoints)
+    ) {
+      let tempTotal = 0;
+      fullData.exam.questions?.forEach((q) => {
+        if (q.type === "passage_group") {
+          q.subQuestions?.forEach(
+            (sub) => (tempTotal += Number(sub.points || 0)),
+          );
+        } else if (q.type !== "instruction") {
+          tempTotal += Number(q.points || 0);
+        }
+      });
+      fullData.exam.totalPoints = tempTotal;
+    }
+
     if (fullData.exam && fullData.exam.questions) {
       fullData.answers = fullData.answers.map((ans) => ({
         ...ans,
         questionId: findQuestionInExam(fullData.exam, ans.questionId),
       }));
     } else {
-      // Nếu đề đã xóa, ta giữ nguyên mảng answers (hoặc xử lý tối giản)
-      // để tránh lỗi hàm findQuestionInExam
       fullData.exam = null;
     }
 
     res.json(fullData);
   } catch (error) {
+    console.error(error);
     res.status(500).json("Lỗi server");
   }
 };
-
 const getActivityLog = async (req, res) => {
   try {
     const teacherId = req.user.id;
-
-    // 1. Lấy 10 bài nộp mới nhất của các đề thi do giáo viên này tạo
-    // Chúng ta cần tìm các Exam của giáo viên này trước
     const myExams = await Exam.find({ author: teacherId }).select("_id title");
     const examIds = myExams.map((e) => e._id);
 
@@ -243,16 +312,13 @@ const getActivityLog = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(10);
 
-    // 2. Lấy 10 đề thi vừa được cập nhật/tạo mới của giáo viên
     const latestExamActions = await Exam.find({ author: teacherId })
       .sort({ updatedAt: -1 })
       .limit(10);
 
-    // 3. Trộn (Merge) và định dạng lại để Frontend dễ hiển thị
     const logs = [
       ...latestSubmissions.map((s) => ({
         id: s._id,
-        // examId: s.exam?._id,
         type: "STUDENT_SUBMIT",
         title: `${s.student?.name || "Ẩn danh"} đã nộp bài`,
         desc: `Đề thi: ${s.exam?.title || "Đề đã xóa"}`,
@@ -261,7 +327,6 @@ const getActivityLog = async (req, res) => {
       })),
       ...latestExamActions.map((e) => ({
         id: e._id,
-        // examId: e._id,
         type: "TEACHER_ACTION",
         title: `Bạn đã cập nhật đề thi`,
         desc: `Nội dung: ${e.title}`,
@@ -270,10 +335,8 @@ const getActivityLog = async (req, res) => {
       })),
     ];
 
-    // Sắp xếp tất cả theo thời gian mới nhất
     logs.sort((a, b) => new Date(b.time) - new Date(a.time));
-
-    res.json(logs.slice(0, 20)); // Trả về 20 hoạt động gần nhất
+    res.json(logs.slice(0, 20));
   } catch (error) {
     res.status(500).json("Lỗi server khi lấy nhật ký");
   }

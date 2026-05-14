@@ -241,35 +241,62 @@ const TakeExam = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-md border-b sticky top-0 z-50 px-6 py-4 shadow-sm">
         <div className="max-w-7xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg">
+          {/* Cánh trái: Logo & Tiêu đề */}
+          <div className="flex items-center gap-4 flex-1">
+            <div className="bg-indigo-600 p-2.5 rounded-xl text-white shadow-lg shrink-0">
               <HiOutlineClipboardDocumentCheck size={24} />
             </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-800 uppercase tracking-tight">
+            <div className="truncate">
+              <h1 className="text-lg md:text-xl font-black text-slate-800 uppercase tracking-tight truncate max-w-[200px] md:max-w-md">
                 {exam.title}
               </h1>
-              <p className="text-[10px] text-slate-400 font-bold uppercase mt-1 tracking-widest">
-                Đang thực hiện
+              <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 tracking-widest">
+                Đang thực hiện bài thi
               </p>
+            </div>
+          </div>
 
-              <div className="flex flex-col items-end">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  Lượt thi
-                </div>
-                <div className="text-sm font-bold text-slate-700">
-                  {exam.maxAttempts > 0
-                    ? `Tối đa ${exam.maxAttempts} lần`
-                    : "Vô tận"}
-                </div>
+          {/* Cánh giữa: Lượt thi & Điểm số (Ẩn trên mobile nếu quá chật) */}
+          <div className="hidden lg:flex items-center gap-8 mr-8">
+            <div className="flex flex-col items-end">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Lượt thi
+              </div>
+              <div className="text-sm font-bold text-slate-700">
+                {exam.maxAttempts > 0
+                  ? `Tối đa ${exam.maxAttempts} lần`
+                  : "Không giới hạn"}
+              </div>
+            </div>
+            <div className="h-8 w-px bg-slate-100"></div> {/* Vạch ngăn cách */}
+            <div className="flex flex-col items-end">
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                Thang điểm
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="text-lg font-black text-indigo-600">
+                  {exam?.totalPoints || 0}
+                </span>
+                <span className="text-[10px] font-bold text-indigo-400 uppercase">
+                  điểm
+                </span>
               </div>
             </div>
           </div>
+
+          {/* Cánh phải: Đồng hồ */}
           <div
-            className={`flex items-center gap-3 px-6 py-2.5 rounded-2xl border-2 transition-all ${timeLeft < 300 ? "bg-red-50 border-red-200 text-red-600 animate-pulse" : "bg-slate-900 border-slate-800 text-white shadow-xl"}`}
+            className={`flex items-center gap-3 px-5 py-2 md:px-7 md:py-3 rounded-2xl border-2 transition-all shadow-sm ${
+              timeLeft < 300
+                ? "bg-red-50 border-red-200 text-red-600 animate-pulse"
+                : "bg-slate-900 border-slate-800 text-white shadow-xl shadow-slate-200"
+            }`}
           >
-            <HiOutlineClock size={20} />
-            <span className="text-2xl font-mono font-black">
+            <HiOutlineClock
+              size={20}
+              className={timeLeft < 300 ? "animate-spin-slow" : ""}
+            />
+            <span className="text-xl md:text-2xl font-mono font-black">
               {Math.floor(timeLeft / 60)}:
               {(timeLeft % 60).toString().padStart(2, "0")}
             </span>

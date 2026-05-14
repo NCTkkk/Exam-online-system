@@ -156,6 +156,21 @@ const CreateExam = () => {
     }
   };
 
+  // Tính toán tổng điểm real-time dựa trên danh sách câu hỏi hiện tại
+  const totalPoints = questions.reduce((acc, q) => {
+    if (q.type === "passage_group") {
+      // Nếu là bài đọc, cộng dồn điểm của các câu hỏi con subQuestions
+      const subPoints =
+        q.subQuestions?.reduce(
+          (sum, subQ) => sum + (Number(subQ.points) || 0),
+          0,
+        ) || 0;
+      return acc + subPoints;
+    }
+    // Nếu là trắc nghiệm hoặc tự luận thông thường, cộng điểm câu hỏi lớn
+    return acc + (Number(q.points) || 0);
+  }, 0);
+
   return (
     <div className="min-h-screen bg-[#f1f5f9] pb-40 font-sans text-slate-900">
       {/* HEADER BAR */}
@@ -226,6 +241,14 @@ const CreateExam = () => {
               ))}
             </select>
           </div>
+
+          {/* lưu đề */}
+          <button
+            onClick={handleSubmit}
+            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-black flex items-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95"
+          >
+            <HiOutlineRocketLaunch /> LƯU ĐỀ
+          </button>
         </div>
       </div>
 
@@ -306,22 +329,38 @@ const CreateExam = () => {
           {/* ĐƯỜNG KẺ PHÂN CÁCH NGHỆ THUẬT */}
           <div className="w-10 h-[2px] bg-gradient-to-r from-transparent via-slate-200 to-transparent"></div>
 
-          {/* THỐNG KÊ TỔNG CÂU - MÀU EMERALD */}
-          <div className="flex flex-col items-center group cursor-default">
-            <div className="text-emerald-600 font-black text-2xl leading-none transition-transform group-hover:scale-110">
-              {questions.reduce(
-                (acc, q) =>
-                  acc +
-                  (q.type === "passage_group" ? q.subQuestions.length : 1),
-                0,
-              )}
+          {/* KHỐI THỐNG KÊ TỔNG CÂU VÀ TỔNG ĐIỂM */}
+          <div className="flex flex-col items-center gap-4 cursor-default">
+            {/* Thống kê tổng câu */}
+            <div className="flex flex-col items-center group">
+              <div className="text-emerald-600 font-black text-xl leading-none transition-transform group-hover:scale-110">
+                {questions.reduce(
+                  (acc, q) =>
+                    acc +
+                    (q.type === "passage_group" ? q.subQuestions.length : 1),
+                  0,
+                )}
+              </div>
+              <span className="text-[9px] text-slate-400 font-black uppercase mt-0.5 tracking-tighter">
+                Số câu
+              </span>
             </div>
-            <span className="text-[9px] text-slate-400 font-black uppercase mt-1 tracking-tighter">
-              Total
-            </span>
+
+            {/* Đường phân cách nhỏ giữa Số câu và Số điểm */}
+            <div className="w-6 h-[1px] bg-slate-100"></div>
+
+            {/* Thống kê tổng điểm - THÊM MỚI */}
+            <div className="flex flex-col items-center group">
+              <div className="text-indigo-600 font-black text-xl leading-none transition-transform group-hover:scale-110">
+                {totalPoints}đ
+              </div>
+              <span className="text-[9px] text-slate-400 font-black uppercase mt-0.5 tracking-tighter">
+                Tổng điểm
+              </span>
+            </div>
 
             {/* Một chấm nhỏ báo hiệu trạng thái hoạt động */}
-            <div className="mt-4 w-2 h-2 bg-emerald-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.6)]"></div>
+            <div className="mt-2 w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(79,70,229,0.6)]"></div>
           </div>
         </div>
       </div>

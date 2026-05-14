@@ -309,6 +309,7 @@ const ReviewResult = () => {
                     Number(result.scoreManual || 0)
                   ).toFixed(2),
                 )}
+                /{result.exam?.totalPoints || 0}đ
               </p>
             </div>
           </div>

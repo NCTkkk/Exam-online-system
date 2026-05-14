@@ -68,8 +68,8 @@ const ExamSubmissions = () => {
         ?.toLowerCase()
         .includes(studentSearch.toLowerCase());
 
-      // 2. Lọc theo trạng thái chấm điểm
-      const isGraded = s.scoreManual !== undefined && s.scoreManual !== null;
+      // 2. Lọc theo trạng thái chấm điểm (Đã đồng bộ với Backend)
+      const isGraded = s.status === "graded";
       const statusMatch =
         statusFilter === "all"
           ? true
@@ -332,7 +332,7 @@ const ExamSubmissions = () => {
                   </span>
                 </td>
                 <td className="p-5">
-                  {s.scoreManual !== undefined ? (
+                  {s.status === "graded" ? (
                     <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full text-[10px] font-black uppercase">
                       <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></span>
                       Đã chấm
@@ -347,9 +347,13 @@ const ExamSubmissions = () => {
                 <td className="p-5 text-right">
                   <button
                     onClick={() => navigate(`/grade-submission/${s._id}`)}
-                    className="bg-slate-900 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight hover:bg-indigo-600 transition-all active:scale-90"
+                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all active:scale-90 text-white ${
+                      s.status === "graded"
+                        ? "bg-slate-500 hover:bg-indigo-600"
+                        : "bg-slate-900 hover:bg-indigo-600"
+                    }`}
                   >
-                    Chấm bài →
+                    {s.status === "graded" ? "Sửa điểm →" : "Chấm bài →"}
                   </button>
                 </td>
               </tr>

@@ -324,15 +324,35 @@ const ViewResults = () => {
                         </span>
                       </div>
 
-                      <motion.button
-                        whileHover={{ scale: 1.05 }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => navigate(`/review-result/${res._id}`)}
-                        className="mt-6 flex items-center gap-2 bg-indigo-50 text-indigo-600 px-6 py-2.5 rounded-2xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all w-fit"
-                      >
-                        <HiOutlineSearchCircle size={22} />
-                        XEM CHI TIẾT & ĐÁP ÁN
-                      </motion.button>
+                      <div className="mt-6 flex flex-wrap items-center gap-3 w-full">
+                        {/* Nút xem chi tiết đáp án */}
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={() => navigate(`/review-result/${res._id}`)}
+                          className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-6 py-2.5 rounded-2xl font-black text-sm hover:bg-indigo-600 hover:text-white transition-all w-fit"
+                        >
+                          <HiOutlineSearchCircle size={22} />
+                          XEM CHI TIẾT & ĐÁP ÁN
+                        </motion.button>
+
+                        {/* Nút thi lại */}
+                        {(res.exam?.maxAttempts === 0 ||
+                          res.exam?.currentAttempts <
+                            res.exam?.maxAttempts) && (
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() =>
+                              navigate(`/take-exam/${res.exam._id}`)
+                            }
+                            className="flex items-center gap-2 bg-rose-50 text-rose-500 px-6 py-2.5 rounded-2xl font-black text-sm hover:bg-rose-500 hover:text-white transition-all w-fit border border-rose-100"
+                          >
+                            <HiOutlineRefresh size={20} />
+                            LÀM LẠI
+                          </motion.button>
+                        )}
+                      </div>
                     </div>
 
                     {/* Phần điểm & Trạng thái */}
@@ -342,7 +362,7 @@ const ViewResults = () => {
                           Tổng điểm
                         </p>
                         <div className="flex items-baseline justify-center md:justify-end gap-1">
-                          <span className="text-4xl font-black text-indigo-600 tracking-tighter">
+                          <span className="text-3xl font-black text-indigo-600 tracking-tighter">
                             {parseFloat(
                               (
                                 Number(res.scoreAuto || 0) +
@@ -350,7 +370,11 @@ const ViewResults = () => {
                               ).toFixed(2),
                             )}
                           </span>
-                          <span className="text-slate-300 font-bold">/10</span>
+
+                          {/* hehe nè */}
+                          <span className="text-3xl font-black text-indigo-600 tracking-tighter">
+                            /{res.exam.totalPoints || 0}đ
+                          </span>
                         </div>
                       </div>
 
