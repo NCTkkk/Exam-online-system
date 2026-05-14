@@ -236,6 +236,14 @@ const ManageExams = () => {
                             "vi-VN",
                           )}
                         </div>
+
+                        {/* THÊM VÀO ĐÂY: Hiển thị tổng điểm của đề thi */}
+                        <div className="flex items-center gap-1.5 border-l pl-4 text-indigo-600 font-black">
+                          <span className="text-slate-400 font-bold">
+                            TỔNG ĐIỂM:
+                          </span>
+                          <span>{examItem.totalPoints ?? 0}Đ</span>
+                        </div>
                       </div>
 
                       {/* Nút danh sách nộp bài & Excel (Đã khôi phục) */}

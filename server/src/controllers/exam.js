@@ -17,8 +17,27 @@ const createExam = async (req, res) => {
 // 2. Lấy danh sách đề của chính Giáo viên (CRUD - Read)
 const getMyExams = async (req, res) => {
   try {
-    const exams = await Exam.find({ author: req.user.id });
-    res.status(200).json(exams);
+    const exams = await Exam.find({ author: req.user.id }).lean();
+
+    const updatedExams = exams.map((exam) => {
+      let total = 0;
+      exam.questions?.forEach((q) => {
+        if (q.type === "passage_group") {
+          q.subQuestions?.forEach((subQ) => {
+            total += Number(subQ.points) || 0;
+          });
+        } else {
+          total += Number(q.points) || 0;
+        }
+      });
+
+      return {
+        ...exam,
+        totalPoints: exam.totalPoints || total,
+      };
+    });
+
+    res.status(200).json(updatedExams);
   } catch (err) {
     res.status(500).json(err);
   }
@@ -29,11 +48,8 @@ const getAllExamsPublished = async (req, res) => {
   try {
     const studentId = req.user.id;
 
-    console.log("--- DEBUG GET ALL EXAMS ---");
-    console.log("Đang lấy danh sách cho Student ID:", studentId);
-
     const exams = await Exam.find()
-      .select("title duration author subject maxAttempts")
+      .select("title duration author subject maxAttempts totalPoints")
       .populate("author", "name")
       .lean();
 
@@ -45,12 +61,6 @@ const getAllExamsPublished = async (req, res) => {
           exam: exam._id,
           student: studentId,
         });
-
-        if (count > 0) {
-          console.log(
-            `Đề [${exam.title}] tìm thấy ${count} bài nộp của user này.`,
-          );
-        }
 
         return {
           ...exam,
@@ -81,23 +91,39 @@ const getExamById = async (req, res) => {
     const exam = await Exam.findById(req.params.id);
     if (!exam) return res.status(404).json("Không tìm thấy đề thi");
 
-    // NẾU LÀ HỌC SINH (MEMBER), KIỂM TRA LƯỢT THI TRƯỚC KHI TRẢ VỀ ĐỀ
-    if (req.user.role === "member" && exam.maxAttempts > 0) {
+    // 1. KIỂM TRA VÀ TÍNH TOÁN ĐIỂM (Nếu DB đang lưu là 0)
+    const examObj = exam.toObject();
+    if (!examObj.totalPoints || examObj.totalPoints === 0) {
+      let total = 0;
+      examObj.questions?.forEach((q) => {
+        if (q.type === "passage_group") {
+          q.subQuestions?.forEach((sub) => (total += Number(sub.points || 0)));
+        } else if (q.type !== "instruction") {
+          total += Number(q.points || 0);
+        }
+      });
+      examObj.totalPoints = total;
+    }
+
+    // 2. NẾU LÀ HỌC SINH (MEMBER), KIỂM TRA LƯỢT THI
+    if (req.user.role === "member" && examObj.maxAttempts > 0) {
       const Submission = require("../models/Submission");
       const attemptCount = await Submission.countDocuments({
-        exam: exam._id,
+        exam: examObj._id,
         student: req.user.id,
       });
 
-      if (attemptCount >= exam.maxAttempts) {
+      if (attemptCount >= examObj.maxAttempts) {
         return res.status(403).json({
-          message: `Bạn đã hết lượt làm bài thi này (Tối đa: ${exam.maxAttempts} lần).`,
+          message: `Bạn đã hết lượt làm bài thi này (Tối đa: ${examObj.maxAttempts} lần).`,
         });
       }
     }
 
-    res.json(exam);
+    // Trả về object đã được xử lý điểm
+    res.json(examObj);
   } catch (err) {
+    console.error("Lỗi getExamById:", err);
     res.status(500).json(err);
   }
 };
@@ -105,18 +131,36 @@ const getExamById = async (req, res) => {
 // 6. Cập nhật đề thi (Có check quyền sở hữu)
 const updateExam = async (req, res) => {
   try {
-    const exam = await Exam.findById(req.params.id);
-    if (!exam) return res.status(404).json("Không tìm thấy đề thi");
+    // 1. Lấy dữ liệu hiện tại từ DB nếu trong req.body không gửi đủ questions
+    const currentExam = await Exam.findById(req.params.id);
+    if (!currentExam) return res.status(404).json("Không tìm thấy đề thi");
 
-    if (exam.author.toString() !== req.user.id) {
-      return res.status(403).json("Bạn không có quyền sửa đề của người khác");
+    // 2. Xác định mảng questions dùng để tính điểm
+    // Ưu tiên mảng questions mới từ req.body, nếu không có thì dùng mảng cũ trong DB
+    const questionsToCalculate = req.body.questions || currentExam.questions;
+
+    let total = 0;
+    if (questionsToCalculate && Array.isArray(questionsToCalculate)) {
+      questionsToCalculate.forEach((q) => {
+        if (q.type === "passage_group" && q.subQuestions) {
+          q.subQuestions.forEach((sub) => {
+            total += Number(sub.points || 0);
+          });
+        } else if (q.type !== "instruction") {
+          total += Number(q.points || 0);
+        }
+      });
     }
+
+    // 3. Gán totalPoints vào body để cập nhật vào DB
+    req.body.totalPoints = total;
 
     const updatedExam = await Exam.findByIdAndUpdate(
       req.params.id,
       { $set: req.body },
       { new: true },
     );
+
     res.status(200).json(updatedExam);
   } catch (err) {
     res.status(500).json(err);

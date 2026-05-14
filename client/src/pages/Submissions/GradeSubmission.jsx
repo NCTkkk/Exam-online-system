@@ -34,6 +34,13 @@ const GradeSubmission = () => {
           `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${submissionId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
+
+        console.log(">>> Dữ liệu bài nộp nhận được:", res.data);
+        console.log(
+          ">>> Tổng điểm của đề thi (totalPoints):",
+          res.data.exam?.totalPoints,
+        );
+
         setSubmission(res.data);
         if (res.data.feedback) setFeedback(res.data.feedback);
 
@@ -136,6 +143,9 @@ const GradeSubmission = () => {
             </span>
             <span className="text-2xl font-black text-yellow-400">
               {currentTotal.toFixed(2)}đ
+            </span>
+            <span className="text-2xl font-black text-yellow-400">
+              /{submission.exam?.totalPoints || 0}đ
             </span>
           </div>
         </div>

@@ -31,7 +31,7 @@ const SubmissionList = () => {
         );
         setSubmissions(res.data);
       } catch (err) {
-        console.error("Lỗi:", err);
+        console.error("Lỗi khi lấy danh sách bài nộp:", err);
       } finally {
         setLoading(false);
       }
@@ -39,15 +39,19 @@ const SubmissionList = () => {
     fetchSubmissions();
   }, [examId]);
 
+  // --- XỬ LÝ LỌC VÀ SẮP XẾP DANH SÁCH ---
   const filteredSubmissions = useMemo(() => {
     let result = [...submissions];
 
-    // 1. Lọc theo trạng thái
+    // 1. Lọc theo trạng thái trực tiếp từ DB (Đã đồng bộ hóa logic tự luận/trắc nghiệm từ Backend)
     if (filterStatus !== "all") {
-      result = result.filter((sub) => sub.status === filterStatus);
+      result = result.filter((sub) => {
+        const isGraded = sub.status === "graded";
+        return filterStatus === "graded" ? isGraded : !isGraded;
+      });
     }
 
-    // 2. Lọc theo từ khóa tìm kiếm
+    // 2. Lọc theo từ khóa tìm kiếm (Tên hoặc Email)
     if (searchTerm.trim()) {
       const s = searchTerm.toLowerCase();
       result = result.filter((sub) => {
@@ -72,20 +76,24 @@ const SubmissionList = () => {
     return result;
   }, [submissions, searchTerm, filterStatus]);
 
-  const stats = {
-    total: submissions.length,
-    graded: submissions.filter((s) => s.status === "graded").length,
-    pending: submissions.filter((s) => s.status === "pending").length,
-    avgScore:
-      submissions.length > 0
-        ? (
-            submissions.reduce(
-              (acc, s) => acc + (s.scoreAuto + (s.scoreManual || 0)),
-              0,
-            ) / submissions.length
-          ).toFixed(1)
-        : 0,
-  };
+  // --- TÍNH TOÁN SỐ LIỆU THỐNG KÊ ---
+  const stats = useMemo(() => {
+    const gradedCount = submissions.filter((s) => s.status === "graded").length;
+    return {
+      total: submissions.length,
+      graded: gradedCount,
+      pending: submissions.length - gradedCount,
+      avgScore:
+        submissions.length > 0
+          ? (
+              submissions.reduce(
+                (acc, s) => acc + (s.scoreAuto + (s.scoreManual || 0)),
+                0,
+              ) / submissions.length
+            ).toFixed(1)
+          : 0,
+    };
+  }, [submissions]);
 
   if (loading)
     return (
@@ -178,7 +186,6 @@ const SubmissionList = () => {
 
         {/* SEARCH & FILTER BAR */}
         <div className="flex flex-col md:flex-row gap-4 mb-8">
-          {/* Thanh tìm kiếm */}
           <div className="relative group flex-1">
             <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-indigo-600 transition-colors">
               <HiOutlineUserGroup size={20} />
@@ -200,7 +207,6 @@ const SubmissionList = () => {
             )}
           </div>
 
-          {/* Bộ lọc trạng thái */}
           <div className="flex bg-white p-2 rounded-3xl shadow-sm border border-white shrink-0">
             {[
               { id: "all", label: "Tất cả" },
@@ -231,87 +237,93 @@ const SubmissionList = () => {
           </div>
         ) : (
           <div className="grid gap-4">
-            {filteredSubmissions.map((sub, index) => (
-              <motion.div
-                key={sub._id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-white hover:shadow-xl hover:shadow-indigo-50 transition-all flex flex-col md:flex-row justify-between items-center gap-6"
-              >
-                <div className="flex items-center gap-5 flex-1 w-full">
-                  {/* Avatar viết tắt */}
-                  <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 font-black text-xl border-2 border-white shadow-sm shrink-0">
-                    {sub.student?.name?.charAt(0).toUpperCase()}
-                  </div>
+            {filteredSubmissions.map((sub, index) => {
+              const isItemGraded = sub.status === "graded";
 
-                  <div className="flex-1">
-                    {/* HÀNG 1: TÊN + TRẠNG THÁI */}
-                    <div className="flex items-center gap-3 mb-1.5">
-                      <h3 className="font-black text-xl text-slate-800 leading-tight">
-                        {sub.student?.name || "Học sinh ẩn danh"}
-                      </h3>
-
-                      <span
-                        className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter shrink-0 ${
-                          sub.status === "graded"
-                            ? "bg-emerald-100 text-emerald-600"
-                            : "bg-orange-100 text-orange-600"
-                        }`}
-                      >
-                        {sub.status === "graded" ? "✓ Đã chấm" : "● Đang chờ"}
-                      </span>
+              return (
+                <motion.div
+                  key={sub._id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="bg-white p-6 md:p-8 rounded-[2.5rem] shadow-sm border border-white hover:shadow-xl hover:shadow-indigo-50 transition-all flex flex-col md:flex-row justify-between items-center gap-6"
+                >
+                  <div className="flex items-center gap-5 flex-1 w-full">
+                    <div className="w-14 h-14 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 font-black text-xl border-2 border-white shadow-sm shrink-0">
+                      {sub.student?.name?.charAt(0).toUpperCase()}
                     </div>
 
-                    {/* HÀNG 2: EMAIL + THỜI GIAN */}
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-                      <p className="text-sm text-slate-400 font-medium flex items-center gap-1">
-                        <HiOutlineMail className="shrink-0" />{" "}
-                        {sub.student?.email}
-                      </p>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-1.5">
+                        <h3 className="font-black text-xl text-slate-800 leading-tight">
+                          {sub.student?.name || "Học sinh ẩn danh"}
+                        </h3>
 
-                      <div className="flex items-center gap-1.5 text-[11px] text-indigo-500 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-lg border border-indigo-100/50">
-                        <HiOutlineCalendar size={13} />
-                        <span>
-                          {new Date(sub.createdAt).toLocaleDateString("vi-VN")}
+                        <span
+                          className={`text-[9px] font-black px-2.5 py-1 rounded-full uppercase tracking-tighter shrink-0 ${
+                            isItemGraded
+                              ? "bg-emerald-100 text-emerald-600"
+                              : "bg-orange-100 text-orange-600"
+                          }`}
+                        >
+                          {isItemGraded ? "✓ Đã chấm" : "● Đang chờ"}
                         </span>
-                        <span className="opacity-30">|</span>
-                        <HiOutlineClock size={13} />
-                        <span>
-                          {new Date(sub.createdAt).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </span>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <p className="text-sm text-slate-400 font-medium flex items-center gap-1">
+                          <HiOutlineMail className="shrink-0" />{" "}
+                          {sub.student?.email}
+                        </p>
+
+                        <div className="flex items-center gap-1.5 text-[11px] text-indigo-500 font-bold bg-indigo-50/50 px-2 py-0.5 rounded-lg border border-indigo-100/50">
+                          <HiOutlineCalendar size={13} />
+                          <span>
+                            {new Date(sub.createdAt).toLocaleDateString(
+                              "vi-VN",
+                            )}
+                          </span>
+                          <span className="opacity-30">|</span>
+                          <HiOutlineClock size={13} />
+                          <span>
+                            {new Date(sub.createdAt).toLocaleTimeString(
+                              "vi-VN",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-10 w-full md:w-auto justify-between md:justify-end border-t md:border-none pt-4 md:pt-0">
-                  <div className="text-center md:text-right">
-                    <p className="text-3xl font-black text-indigo-600 leading-none">
-                      {(sub.scoreAuto + (sub.scoreManual || 0)).toFixed(1)}
-                      <span className="text-xs text-slate-300 ml-1 italic font-normal">
-                        điểm
-                      </span>
-                    </p>
+                  <div className="flex items-center gap-10 w-full md:w-auto justify-between md:justify-end border-t md:border-none pt-4 md:pt-0">
+                    <div className="text-center md:text-right">
+                      <p className="text-3xl font-black text-indigo-600 leading-none">
+                        {(sub.scoreAuto + (sub.scoreManual || 0)).toFixed(1)}
+                        <span className="text-xs text-slate-300 ml-1 italic font-normal">
+                          điểm
+                        </span>
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={() => navigate(`/grade-submission/${sub._id}`)}
+                      className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${
+                        isItemGraded
+                          ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                      }`}
+                    >
+                      <HiOutlinePencilAlt size={20} />
+                      {isItemGraded ? "SỬA ĐIỂM" : "CHẤM BÀI"}
+                    </button>
                   </div>
-
-                  <button
-                    onClick={() => navigate(`/grade-submission/${sub._id}`)}
-                    className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${
-                      sub.status === "graded"
-                        ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100"
-                        : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
-                    }`}
-                  >
-                    <HiOutlinePencilAlt size={20} />
-                    {sub.status === "graded" ? "SỬA ĐIỂM" : "CHẤM BÀI"}
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </div>
         )}
       </div>
