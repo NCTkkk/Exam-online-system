@@ -26,7 +26,7 @@ const SubmissionList = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+          `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(res.data);
@@ -94,6 +94,34 @@ const SubmissionList = () => {
           : 0,
     };
   }, [submissions]);
+
+  const handleDelete = async (submissionId, studentName) => {
+    if (
+      window.confirm(
+        `Bạn có chắc chắn muốn xóa bài nộp của "${studentName}"? Học sinh sẽ được hoàn lại 1 lượt làm bài và tính lại ELO.`,
+      )
+    ) {
+      try {
+        const token = localStorage.getItem("token");
+        await axios.delete(
+          `http://localhost:5000/api/submissions/${submissionId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        // Cập nhật lại danh sách tại chỗ
+        setSubmissions((prev) =>
+          prev.filter((sub) => sub._id !== submissionId),
+        );
+        alert("Đã xóa và cập nhật lại bảng xếp hạng thành công!");
+      } catch (err) {
+        alert(
+          "Lỗi: " + (err.response?.data?.message || "Không thể xóa bài nộp"),
+        );
+      }
+    }
+  };
 
   if (loading)
     return (
@@ -309,17 +337,45 @@ const SubmissionList = () => {
                       </p>
                     </div>
 
-                    <button
-                      onClick={() => navigate(`/grade-submission/${sub._id}`)}
-                      className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${
-                        isItemGraded
-                          ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100"
-                          : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
-                      }`}
-                    >
-                      <HiOutlinePencilAlt size={20} />
-                      {isItemGraded ? "SỬA ĐIỂM" : "CHẤM BÀI"}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      {/* Nút Chấm bài */}
+                      <button
+                        onClick={() => navigate(`/grade-submission/${sub._id}`)}
+                        className={`flex items-center gap-2 px-8 py-4 rounded-2xl font-black text-sm transition-all active:scale-95 shadow-lg ${
+                          isItemGraded
+                            ? "bg-slate-100 text-slate-600 hover:bg-slate-200 shadow-slate-100"
+                            : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-indigo-100"
+                        }`}
+                      >
+                        <HiOutlinePencilAlt size={20} />
+                        {isItemGraded ? "SỬA ĐIỂM" : "CHẤM BÀI"}
+                      </button>
+
+                      {/* Nút Xóa */}
+                      <button
+                        onClick={() => handleDelete(sub._id, sub.student?.name)}
+                        className="p-4 rounded-2xl bg-red-50 text-red-500 hover:bg-red-100 transition-all active:scale-95 border border-red-100"
+                        title="Xóa bài nộp"
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          width="20"
+                          height="20"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M3 6h18" />
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                          <line x1="10" y1="11" x2="10" y2="17" />
+                          <line x1="14" y1="11" x2="14" y2="17" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               );

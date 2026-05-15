@@ -21,7 +21,7 @@ const ReviewResult = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${id}`,
+          `http://localhost:5000/api/submissions/detail/${id}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 

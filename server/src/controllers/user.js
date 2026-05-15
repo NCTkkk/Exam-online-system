@@ -1,6 +1,22 @@
 const User = require("../models/User");
 const bcrypt = require("bcryptjs");
 
+// API lấy danh sách cho Đường Đua Danh Hiệu
+const getTrophyRoad = async (req, res) => {
+  try {
+    // Chỉ lấy những người có role là 'member' (học sinh)
+    // Sắp xếp theo ELO từ cao đến thấp
+    const players = await User.find({ role: "member" })
+      .select("name avatar elo rank totalSubmissions uniqueExamsCompleted")
+      .sort({ elo: -1 });
+
+    res.status(200).json(players);
+  } catch (error) {
+    console.error("Lỗi getTrophyRoad:", error);
+    res.status(500).json("Lỗi server khi lấy dữ liệu đường đua");
+  }
+};
+
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -38,8 +54,30 @@ const changePassword = async (req, res) => {
   }
 };
 
+// Lấy thống kê cá nhân cho trang Profile
+const getProfileStats = async (req, res) => {
+  try {
+    // req.user.id lấy từ middleware verifyToken
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json("Người dùng không tồn tại");
+
+    // Trả về các thông số cần thiết cho Frontend
+    res.json({
+      elo: user.elo || 0,
+      rank: user.rank || "Sơ Nhập",
+      uniqueExamsCompleted: user.uniqueExamsCompleted || 0,
+      totalSubmissions: user.totalSubmissions || 0,
+    });
+  } catch (err) {
+    res.status(500).json("Lỗi máy chủ khi lấy thống kê");
+  }
+};
+
 module.exports = {
+  getTrophyRoad,
   getAllUsers,
   deleteUser,
   changePassword,
+  getProfileStats,
 };

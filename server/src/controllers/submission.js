@@ -1,5 +1,88 @@
 const Submission = require("../models/Submission");
 const Exam = require("../models/Exam");
+const User = require("../models/User");
+
+const calculateRank = (elo) => {
+  const score = Number(elo) || 0;
+  if (score >= 500) return "Chiến Thần";
+  if (score >= 400) return "Thần Thoại";
+  if (score >= 320) return "Huyền Thoại";
+  if (score >= 250) return "Đại Cao Thủ";
+  if (score >= 190) return "Cao Thủ";
+  if (score >= 140) return "Tinh Anh";
+  if (score >= 100) return "Đấu Sĩ";
+  if (score >= 60) return "Dũng Sĩ";
+  if (score >= 30) return "Chiến Binh";
+  if (score >= 15) return "Thông Thạo";
+  if (score >= 5) return "Tập Sự";
+  return "Sơ Nhập";
+};
+
+const updateUserStats = async (studentIdInput) => {
+  try {
+    console.log("=== BẮT ĐẦU UPDATE STATS ===");
+
+    // 1. Ép kiểu ID về string để tránh lỗi Object query
+    const studentId = studentIdInput?.toString();
+    if (!studentId) {
+      console.error("❌ studentId không hợp lệ!");
+      return;
+    }
+
+    // 2. Tìm tất cả bài nộp đã chấm
+    const allSubmissions = await Submission.find({
+      student: studentId,
+      status: "graded",
+    }).populate("exam");
+
+    const bestScoresMap = {};
+
+    allSubmissions.forEach((sub) => {
+      const examId = sub.exam?._id?.toString();
+      if (!examId) return;
+
+      const currentTotal =
+        (Number(sub.scoreAuto) || 0) + (Number(sub.scoreManual) || 0);
+
+      if (!bestScoresMap[examId] || currentTotal > bestScoresMap[examId]) {
+        bestScoresMap[examId] = currentTotal;
+      }
+    });
+
+    // 3. Tính toán các chỉ số
+    const totalElo = Object.values(bestScoresMap).reduce(
+      (sum, score) => sum + score,
+      0,
+    );
+    const uniqueExams = Object.keys(bestScoresMap).length;
+    const totalSubs = allSubmissions.length;
+    const newRank = calculateRank(totalElo);
+
+    // 4. Cập nhật vào User DB
+    const updatedUser = await User.findByIdAndUpdate(
+      studentId,
+      {
+        $set: {
+          elo: totalElo,
+          rank: newRank,
+          totalSubmissions: totalSubs,
+          uniqueExamsCompleted: uniqueExams,
+        },
+      },
+      { new: true },
+    );
+
+    if (!updatedUser) {
+      console.error("❌ Không tìm thấy User để cập nhật trong DB!");
+    }
+
+    console.log("=== KẾT THÚC UPDATE STATS ===");
+  } catch (error) {
+    console.error("💥 LỖI TRONG updateUserStats:", error.message);
+  }
+};
+
+// các controller
 
 const findQuestionInExam = (exam, questionId) => {
   if (!exam || !exam.questions || !questionId) return null;
@@ -29,6 +112,7 @@ const findQuestionInExam = (exam, questionId) => {
 
   return questionData;
 };
+
 const submitExam = async (req, res) => {
   try {
     const { examId, answers, timeSpent } = req.body;
@@ -99,6 +183,11 @@ const submitExam = async (req, res) => {
     });
 
     await newSubmission.save();
+
+    if (submissionStatus === "graded") {
+      await updateUserStats(studentId);
+    }
+
     res.status(201).json({
       message: "Nộp bài thành công",
       scoreAuto,
@@ -200,6 +289,11 @@ const gradeSubmission = async (req, res) => {
     );
     if (!updatedSubmission)
       return res.status(404).json("Không tìm thấy bài nộp");
+
+    const studentIdStr = updatedSubmission.student.toString();
+    await updateUserStats(studentIdStr);
+
+    await updateUserStats(updatedSubmission.student);
     res.json(updatedSubmission);
   } catch (err) {
     res.status(500).json("Lỗi khi cập nhật điểm");
@@ -342,6 +436,37 @@ const getActivityLog = async (req, res) => {
   }
 };
 
+// controllers/submissionController.js
+
+deleteSubmission = async (req, res) => {
+  try {
+    const { submissionId } = req.params;
+
+    const sub = await Submission.findById(submissionId).populate("exam");
+    if (!sub) {
+      return res.status(404).json({ message: "Không tìm thấy bài nộp" });
+    }
+
+    const studentId = sub.student;
+    const examId = sub.exam._id;
+
+    // 2. Xóa bài nộp
+    await Submission.findByIdAndDelete(submissionId);
+
+    // 4. Cập nhật lại ELO/Rank ngay lập tức cho học sinh
+    await updateUserStats(studentId);
+
+    res.status(200).json({
+      message: "Xóa bài nộp thành công và đã cập nhật lại bảng xếp hạng",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Lỗi khi xóa bài nộp",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = {
   submitExam,
   getLeaderboard,
@@ -351,4 +476,5 @@ module.exports = {
   getSubmissionDetail,
   getReview,
   getActivityLog,
+  deleteSubmission,
 };

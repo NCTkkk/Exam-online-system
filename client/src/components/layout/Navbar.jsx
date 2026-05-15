@@ -131,6 +131,16 @@ const Navbar = () => {
               </Link>
             </>
           )}
+
+          {/* 1. Link chung cho cả User & Member: Đường đua danh hiệu */}
+          {(user.role === "member" || user.role === "user") && (
+            <Link
+              to="/trophy-road"
+              className="px-3 py-1 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100 font-bold text-sm transition flex items-center gap-1.5 border border-amber-100"
+            >
+              <span>🏆</span> Đường đua
+            </Link>
+          )}
         </div>
       </div>
 
