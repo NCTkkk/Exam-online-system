@@ -37,14 +37,14 @@ const ExamSubmissions = () => {
       try {
         // 1. Gọi API lấy danh sách bài nộp
         const resSubmissions = await axios.get(
-          `http://localhost:5000/api/submissions/exam/${examId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(resSubmissions.data);
 
         // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
         const resExam = await axios.get(
-          `http://localhost:5000/api/exams/${examId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setExamTitle(resExam.data.title);
@@ -161,7 +161,7 @@ const ExamSubmissions = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `http://localhost:5000/api/submissions/${submissionId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/submissions/${submissionId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },

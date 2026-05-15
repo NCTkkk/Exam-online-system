@@ -26,9 +26,12 @@ const ExamList = () => {
     const fetchExams = async () => {
       try {
         const token = localStorage.getItem("token");
-        const res = await axios.get("http://localhost:5000/api/exams/all", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await axios.get(
+          "https://exam-online-system-p6yp.onrender.com/api/exams/all",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
 
         setExams(res.data);
       } catch (err) {
