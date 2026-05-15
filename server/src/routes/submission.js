@@ -44,4 +44,11 @@ router.get(
   submission.getSubmissionDetail,
 );
 
+router.delete(
+  "/:submissionId",
+  verifyToken,
+  isTeacher,
+  submission.deleteSubmission,
+);
+
 module.exports = router;

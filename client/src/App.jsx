@@ -25,6 +25,7 @@ import LogoDesignLab from "./components/layout/LogoDesignLab";
 import ActivityLog from "./pages/Setting/ActivityLog";
 import UISettings from "./pages/Setting/UISettings";
 import ActivityLogTeacher from "./pages/Setting/ActivityLogTeacher";
+import TrophyRoad from "./pages/TrophyRoad";
 
 const MainLayout = ({ children }) => (
   <div className="min-h-screen flex flex-col bg-slate-50/50">
@@ -51,7 +52,6 @@ function App() {
                   <Route path="/login" element={<Login />} />
                   <Route path="/register" element={<Register />} />
                   <Route path="/" element={<Navigate to="/login" />} />
-
                   <Route
                     path="/create-exam"
                     element={
@@ -60,7 +60,6 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-
                   <Route
                     path="/exam-list"
                     element={
@@ -69,9 +68,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-
                   <Route path="/take-exam/:id" element={<TakeExam />} />
-
                   <Route
                     path="/manage-exams"
                     element={
@@ -80,7 +77,6 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-
                   <Route
                     path="/student-dashboard"
                     element={<StudentDashboard />}
@@ -89,7 +85,6 @@ function App() {
                     path="/teacher-dashboard"
                     element={<TeacherDashboard />}
                   />
-
                   <Route
                     path="/activity-log"
                     element={
@@ -98,7 +93,6 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-
                   <Route
                     path="/teacher-activity"
                     element={
@@ -107,30 +101,25 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
-
                   <Route path="/grade/:submissionId" element={<GradeExam />} />
                   <Route path="/review-result/:id" element={<ReviewResult />} />
                   <Route path="/view-results" element={<ViewResults />} />
                   <Route path="/edit-exam/:id" element={<EditExam />} />
                   <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route path="/trophy-road" element={<TrophyRoad />} />{" "}
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/admin-dashboard" element={<AdminDashboard />} />
-
                   <Route path="/activity-log" element={<ActivityLog />} />
-
                   <Route path="/activity-log" element={<ActivityLog />} />
                   <Route path="/ui-settings" element={<UISettings />} />
-
                   <Route
                     path="/exam-submissions/:examId"
                     element={<ExamSubmissions />}
                   />
-
                   <Route
                     path="/grade-submission/:submissionId"
                     element={<GradeSubmission />}
                   />
-
                   <Route
                     path="/submissions/:examId"
                     element={<SubmissionList />}

@@ -33,9 +33,6 @@ const ExamList = () => {
           },
         );
 
-        console.log("--- DỮ LIỆU TỪ SERVER TRẢ VỀ ---");
-        console.log(res.data);
-
         setExams(res.data);
       } catch (err) {
         console.error("Lỗi lấy đề thi:", err);

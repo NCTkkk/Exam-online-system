@@ -2,6 +2,10 @@ const router = require("express").Router();
 const userController = require("../controllers/user.js");
 const { verifyToken, isAdmin } = require("../middlewares/auth.js");
 
+router.get("/trophy-road", verifyToken, userController.getTrophyRoad);
+
+router.get("/profile-stats", verifyToken, userController.getProfileStats);
+
 // 1. Lấy tất cả người dùng (Chỉ Admin mới xem được)
 router.get("/", verifyToken, isAdmin, userController.getAllUsers);
 
