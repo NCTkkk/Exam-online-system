@@ -77,7 +77,7 @@ const TrophyRoad = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "http://localhost:5000/api/users/trophy-road",
+          "https://exam-online-system-p6yp.onrender.com/api/users/trophy-road",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
