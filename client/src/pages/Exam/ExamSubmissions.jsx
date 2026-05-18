@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo } from "react";
-
 import axios from "axios";
 import * as XLSX from "xlsx"; // Import thư viện Excel
 import { useParams, useNavigate } from "react-router-dom";
@@ -13,6 +12,9 @@ import {
   HiOutlineChartBar,
   HiSave,
 } from "react-icons/hi";
+
+import Pagination from "../../components/common/Pagination";
+import { usePagination } from "../../components/common/usePagination";
 
 const ExamSubmissions = () => {
   const { examId } = useParams();
@@ -37,14 +39,14 @@ const ExamSubmissions = () => {
       try {
         // 1. Gọi API lấy danh sách bài nộp
         const resSubmissions = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+          `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setSubmissions(resSubmissions.data);
 
         // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
         const resExam = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
+          `http://localhost:5000/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setExamTitle(resExam.data.title);
@@ -125,6 +127,11 @@ const ExamSubmissions = () => {
     rangeMax,
   ]);
 
+  const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
+    filteredSubmissions,
+    5,
+  );
+
   // Hàm xử lý xuất Excel
   const exportToExcel = () => {
     if (filteredSubmissions.length === 0) {
@@ -161,7 +168,7 @@ const ExamSubmissions = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/${submissionId}`,
+          `http://localhost:5000/api/submissions/${submissionId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -334,7 +341,7 @@ const ExamSubmissions = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filteredSubmissions.map((s) => (
+            {currentData.map((s) => (
               <tr
                 key={s._id}
                 className="hover:bg-indigo-50/20 transition-colors group"
@@ -429,6 +436,15 @@ const ExamSubmissions = () => {
             </p>
           </div>
         )}
+
+        {/*  */}
+        <Pagination
+          currentPage={currentPage}
+          maxPage={maxPage}
+          next={next}
+          prev={prev}
+          jump={jump}
+        />
       </div>
     </div>
   );

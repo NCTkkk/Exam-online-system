@@ -31,7 +31,7 @@ const ViewResults = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/submissions/my-results",
+          "http://localhost:5000/api/submissions/my-results",
           { headers: { Authorization: `Bearer ${token}` } },
         );
         setResults(res.data);
@@ -291,8 +291,9 @@ const ViewResults = () => {
                   >
                     <div className="flex-1 w-full">
                       <div className="flex items-center gap-4 mb-3 w-full">
+                        {/* FIX 1: Tránh crash nếu đề thi bị xóa hoàn toàn khỏi DB */}
                         <h3 className="font-black text-xl text-slate-800 group-hover:text-indigo-600 transition-colors truncate">
-                          {res.exam?.title || "Đề thi không tên"}
+                          {res.exam?.title || "Đề thi đã bị xóa khỏi hệ thống"}
                         </h3>
                         {res.exam?.subject && (
                           <span className="shrink-0 px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100">
@@ -336,22 +337,23 @@ const ViewResults = () => {
                           XEM CHI TIẾT & ĐÁP ÁN
                         </motion.button>
 
-                        {/* Nút thi lại */}
-                        {(res.exam?.maxAttempts === 0 ||
-                          res.exam?.currentAttempts <
-                            res.exam?.maxAttempts) && (
-                          <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() =>
-                              navigate(`/take-exam/${res.exam._id}`)
-                            }
-                            className="flex items-center gap-2 bg-rose-50 text-rose-500 px-6 py-2.5 rounded-2xl font-black text-sm hover:bg-rose-500 hover:text-white transition-all w-fit border border-rose-100"
-                          >
-                            <HiOutlineRefresh size={20} />
-                            LÀM LẠI
-                          </motion.button>
-                        )}
+                        {/* FIX 2: Check an toàn tránh crash khi đọc số lượt làm bài của đề đã bị xóa */}
+                        {res.exam &&
+                          (res.exam.maxAttempts === 0 ||
+                            res.exam.currentAttempts <
+                              res.exam.maxAttempts) && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={() =>
+                                navigate(`/take-exam/${res.exam._id}`)
+                              }
+                              className="flex items-center gap-2 bg-rose-50 text-rose-500 px-6 py-2.5 rounded-2xl font-black text-sm hover:bg-rose-500 hover:text-white transition-all w-fit border border-rose-100"
+                            >
+                              <HiOutlineRefresh size={20} />
+                              LÀM LẠI
+                            </motion.button>
+                          )}
                       </div>
                     </div>
 
@@ -371,9 +373,9 @@ const ViewResults = () => {
                             )}
                           </span>
 
-                          {/* hehe nè */}
+                          {/* FIX 3: Thêm dấu ?. trước totalPoints để chặn đứng hoàn toàn lỗi Uncaught TypeError */}
                           <span className="text-3xl font-black text-indigo-600 tracking-tighter">
-                            /{res.exam.totalPoints || 0}đ
+                            /{res.exam?.totalPoints || 0}đ
                           </span>
                         </div>
                       </div>
@@ -387,15 +389,11 @@ const ViewResults = () => {
                       >
                         {res.status === "pending" ? (
                           <>
-                            {" "}
-                            <HiOutlineClock size={14} /> Đang chờ chấm tự
-                            luận{" "}
+                            <HiOutlineClock size={14} /> Đang chờ chấm tự luận
                           </>
                         ) : (
                           <>
-                            {" "}
-                            <HiOutlineBadgeCheck size={14} /> Hoàn thành kết
-                            quả{" "}
+                            <HiOutlineBadgeCheck size={14} /> Hoàn thành kết quả
                           </>
                         )}
                       </div>

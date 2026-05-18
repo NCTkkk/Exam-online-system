@@ -83,7 +83,7 @@ const Profile = () => {
         try {
           const token = localStorage.getItem("token");
           const res = await axios.get(
-            "https://exam-online-system-p6yp.onrender.com/api/users/profile-stats",
+            "http://localhost:5000/api/users/profile-stats",
             {
               headers: { Authorization: `Bearer ${token}` },
             },
@@ -105,7 +105,7 @@ const Profile = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        "https://exam-online-system-p6yp.onrender.com/api/users/change-password",
+        "http://localhost:5000/api/users/change-password",
         { oldPassword, newPassword },
         { headers: { Authorization: `Bearer ${token}` } },
       );

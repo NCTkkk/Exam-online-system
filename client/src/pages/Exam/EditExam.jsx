@@ -31,12 +31,9 @@ const EditExam = () => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setTitle(res.data.title);
         setDuration(res.data.duration);
         setSubject(res.data.subject || "");
@@ -173,7 +170,7 @@ const EditExam = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
+        `http://localhost:5000/api/exams/${id}`,
         { title, subject, duration, maxAttempts, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -528,31 +525,66 @@ const EditExam = () => {
                                 }}
                               />
                               <div className="grid grid-cols-2 gap-3">
-                                {sub.options.map((opt, optIdx) => (
-                                  <div key={optIdx} className="relative">
-                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300">
-                                      {String.fromCharCode(65 + optIdx)}.
-                                    </span>
-                                    <input
-                                      onBlur={handleBlur}
-                                      className="w-full pl-8 pr-3 py-2 bg-slate-50 rounded-xl text-sm outline-none focus:bg-white border border-transparent focus:border-purple-100"
-                                      value={opt}
-                                      placeholder="Đáp án..."
-                                      onChange={(e) => {
-                                        const newQs = [...questions];
-                                        newQs[index].subQuestions[
-                                          subIdx
-                                        ].options[optIdx] = e.target.value;
-                                        setQuestions(newQs);
-                                      }}
-                                    />
-                                  </div>
-                                ))}
+                                {sub.options.map((opt, optIdx) => {
+                                  const currentOptValue =
+                                    typeof opt === "object" ? opt?.value : opt;
+                                  const targetCorrectValue =
+                                    typeof sub.correctAnswer === "object"
+                                      ? sub.correctAnswer?.value
+                                      : sub.correctAnswer;
+
+                                  const isCorrect =
+                                    String(targetCorrectValue || "").trim() ===
+                                      String(currentOptValue || "").trim() &&
+                                    currentOptValue !== "";
+
+                                  return (
+                                    <div key={optIdx} className="relative">
+                                      <span
+                                        className={`absolute left-3 top-1/2 -translate-y-1/2 text-[10px] font-black transition-colors ${
+                                          isCorrect
+                                            ? "text-emerald-600"
+                                            : "text-slate-400"
+                                        }`}
+                                      >
+                                        {String.fromCharCode(65 + optIdx)}.
+                                      </span>
+                                      <input
+                                        onBlur={handleBlur}
+                                        className={`w-full pl-8 pr-3 py-2 rounded-xl text-sm outline-none transition-all ${
+                                          isCorrect
+                                            ? "bg-emerald-50 border-2 border-emerald-500 text-emerald-900 font-bold shadow-sm shadow-emerald-100"
+                                            : "bg-slate-50 border border-transparent focus:bg-white focus:border-purple-100 text-slate-700"
+                                        }`}
+                                        value={currentOptValue || ""}
+                                        placeholder="Đáp án..."
+                                        onChange={(e) => {
+                                          const newQs = [...questions];
+                                          if (
+                                            typeof newQs[index].subQuestions[
+                                              subIdx
+                                            ].options[optIdx] === "object"
+                                          ) {
+                                            newQs[index].subQuestions[
+                                              subIdx
+                                            ].options[optIdx].value =
+                                              e.target.value;
+                                          } else {
+                                            newQs[index].subQuestions[
+                                              subIdx
+                                            ].options[optIdx] = e.target.value;
+                                          }
+                                          setQuestions(newQs);
+                                        }}
+                                      />
+                                    </div>
+                                  );
+                                })}
                               </div>
                               <div className="flex gap-3 mt-4">
                                 <select
-                                  className="flex-1 p-2 bg-emerald-50 text-emerald-700 rounded-xl font-black text-[10px] outline-none"
-                                  value={sub.correctAnswer}
+                                  className="flex-1 p-2 bg-emerald-50 text-emerald-700 rounded-xl font-black text-[10px] outline-none border-2 border-emerald-500 transition-all"
+                                  value={sub.correctAnswer || ""}
                                   onChange={(e) => {
                                     const newQs = [...questions];
                                     newQs[index].subQuestions[
@@ -564,8 +596,8 @@ const EditExam = () => {
                                   <option value="">-- ĐÁP ÁN ĐÚNG --</option>
                                   {sub.options.map((o, i) => (
                                     <option key={i} value={o}>
-                                      {o ||
-                                        `Lựa chọn ${String.fromCharCode(65 + i)}`}
+                                      Đáp án {String.fromCharCode(65 + i)}{" "}
+                                      {o ? `(${o.substring(0, 20)}...)` : ""}
                                     </option>
                                   ))}
                                 </select>
@@ -631,32 +663,72 @@ const EditExam = () => {
                     /* GIAO DIỆN TRẮC NGHIỆM ĐƠN */
                     <div className="mt-8 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {q.options.map((opt, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-2 bg-slate-50 p-1 rounded-2xl border border-transparent focus-within:border-indigo-200 focus-within:bg-white transition-all"
-                          >
-                            <span className="pl-4 font-black text-slate-300 text-sm">
-                              {String.fromCharCode(65 + i)}.
-                            </span>
-                            <input
-                              onBlur={handleBlur}
-                              className="w-full p-3 bg-transparent outline-none text-sm"
-                              value={opt}
-                              placeholder={`Đáp án ${String.fromCharCode(65 + i)}`}
-                              onChange={(e) => {
-                                const newQs = [...questions];
-                                newQs[index].options[i] = e.target.value;
-                                setQuestions(newQs);
-                              }}
-                            />
-                          </div>
-                        ))}
+                        {q.options.map((opt, i) => {
+                          const currentOptValue =
+                            typeof opt === "object" ? opt?.value : opt;
+                          const targetCorrectValue =
+                            typeof q.correctAnswer === "object"
+                              ? q.correctAnswer?.value
+                              : q.correctAnswer;
+
+                          // Chuẩn hóa dữ liệu để so sánh chính xác tuyệt đối
+                          const isCorrect =
+                            String(targetCorrectValue || "").trim() ===
+                              String(currentOptValue || "").trim() &&
+                            currentOptValue !== "";
+
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-2 p-1 rounded-2xl border transition-all ${
+                                isCorrect
+                                  ? "bg-emerald-50 border-emerald-500 shadow-sm shadow-emerald-100"
+                                  : "bg-slate-50 border-transparent focus-within:border-indigo-200 focus-within:bg-white"
+                              }`}
+                            >
+                              <span
+                                className={`pl-4 font-black text-sm transition-colors ${
+                                  isCorrect
+                                    ? "text-emerald-600"
+                                    : "text-slate-400"
+                                }`}
+                              >
+                                {String.fromCharCode(65 + i)}.
+                              </span>
+                              <input
+                                onBlur={handleBlur}
+                                className={`w-full p-3 bg-transparent outline-none text-sm transition-colors ${
+                                  isCorrect
+                                    ? "text-emerald-900 font-bold"
+                                    : "text-slate-700"
+                                }`}
+                                value={currentOptValue || ""}
+                                placeholder={`Đáp án ${String.fromCharCode(65 + i)}`}
+                                onChange={(e) => {
+                                  const newQs = [...questions];
+                                  if (
+                                    typeof newQs[index].options[i] === "object"
+                                  ) {
+                                    newQs[index].options[i].value =
+                                      e.target.value;
+                                  } else {
+                                    newQs[index].options[i] = e.target.value;
+                                  }
+                                  setQuestions(newQs);
+                                }}
+                              />
+                            </div>
+                          );
+                        })}
                       </div>
                       <div className="flex flex-col md:flex-row gap-4">
                         <select
-                          className="flex-1 p-4 bg-emerald-50 text-emerald-700 rounded-2xl font-black text-xs outline-none border border-emerald-100"
-                          value={q.correctAnswer}
+                          className={`flex-1 p-4 rounded-2xl font-black text-xs outline-none border-2 transition-all shadow-sm ${
+                            q.correctAnswer
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-500"
+                              : "bg-purple-50 text-purple-700 border-purple-200 focus:border-purple-500"
+                          }`}
+                          value={q.correctAnswer || ""}
                           onChange={(e) => {
                             const newQs = [...questions];
                             newQs[index].correctAnswer = e.target.value;
@@ -666,7 +738,8 @@ const EditExam = () => {
                           <option value="">-- CHỌN ĐÁP ÁN ĐÚNG --</option>
                           {q.options.map((o, i) => (
                             <option key={i} value={o}>
-                              {o || `Lựa chọn ${String.fromCharCode(65 + i)}`}
+                              Đáp án {String.fromCharCode(65 + i)}{" "}
+                              {o ? `(${o.substring(0, 20)}...)` : ""}
                             </option>
                           ))}
                         </select>

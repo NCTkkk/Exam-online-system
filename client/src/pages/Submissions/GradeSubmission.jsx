@@ -17,6 +17,7 @@ const GradeSubmission = () => {
   const [itemScores, setItemScores] = useState({});
   const [essayAnswers, setEssayAnswers] = useState({});
   const [feedback, setFeedback] = useState("");
+  const [validationErrors, setValidationErrors] = useState({});
 
   useEffect(() => {
     // Kiểm tra quyền truy cập
@@ -31,7 +32,7 @@ const GradeSubmission = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${submissionId}`,
+          `http://localhost:5000/api/submissions/detail/${submissionId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -70,7 +71,7 @@ const GradeSubmission = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/grade/${submissionId}`,
+        `http://localhost:5000/api/submissions/grade/${submissionId}`,
         {
           scoreManual: totalManual,
           feedback: feedback,
@@ -83,7 +84,12 @@ const GradeSubmission = () => {
 
       navigate(-1);
     } catch (err) {
-      alert("Lỗi khi lưu điểm");
+      console.error("Lỗi khi lưu điểm:", err);
+      const errorMsg =
+        err.response?.data?.message ||
+        err.response?.data ||
+        "Lỗi khi cập nhật điểm";
+      alert(errorMsg);
     }
   };
 
@@ -229,24 +235,53 @@ const GradeSubmission = () => {
                         <div className="bg-slate-50 p-4 rounded-xl italic text-slate-600 mb-6 border-l-4 border-slate-200">
                           {ans?.content || "(Học sinh không trả lời)"}
                         </div>
+
                         <div className="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl">
                           <span className="text-xs font-black text-indigo-900 uppercase">
                             Nhập điểm:
                           </span>
-                          <input
-                            type="number"
-                            step="0.1"
-                            max={sub.points}
-                            min="0"
-                            value={itemScores[sub._id] || ""}
-                            onChange={(e) =>
-                              setItemScores({
-                                ...itemScores,
-                                [sub._id]: e.target.value,
-                              })
-                            }
-                            className="w-24 p-2 border-2 border-indigo-300 rounded-lg text-center font-black text-indigo-600"
-                          />
+                          <div className="flex flex-col items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.1"
+                              max={sub.points}
+                              min="0"
+                              value={itemScores[sub._id] || ""}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                const maxPts = Number(sub.points || 0);
+
+                                setItemScores({
+                                  ...itemScores,
+                                  [sub._id]: e.target.value,
+                                });
+
+                                // Kiểm tra lỗi realtime thay vì alert ngắt quãng
+                                if (val > maxPts || val < 0) {
+                                  setValidationErrors((prev) => ({
+                                    ...prev,
+                                    [sub._id]: `Tối đa ${maxPts}đ`,
+                                  }));
+                                } else {
+                                  setValidationErrors((prev) => {
+                                    const next = { ...prev };
+                                    delete next[sub._id];
+                                    return next;
+                                  });
+                                }
+                              }}
+                              className={`w-24 p-2 border-2 rounded-lg text-center font-black transition-all ${
+                                validationErrors[sub._id]
+                                  ? "border-rose-500 bg-rose-50 text-rose-600 animate-pulse focus:border-rose-500 outline-none"
+                                  : "border-indigo-300 text-indigo-600 focus:border-indigo-500"
+                              }`}
+                            />
+                            {validationErrors[sub._id] && (
+                              <span className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                                {validationErrors[sub._id]}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                     );
@@ -279,24 +314,53 @@ const GradeSubmission = () => {
                   <div className="bg-slate-50 p-4 rounded-xl italic text-slate-600 mb-6 border-l-4 border-slate-200">
                     {ans?.content || "(Học sinh không trả lời)"}
                   </div>
+
                   <div className="flex items-center gap-4 bg-indigo-50 p-4 rounded-xl">
                     <span className="text-xs font-black text-indigo-900 uppercase">
                       Nhập điểm:
                     </span>
-                    <input
-                      type="number"
-                      step="0.1"
-                      max={q.points}
-                      min="0"
-                      value={itemScores[q._id] || ""}
-                      onChange={(e) =>
-                        setItemScores({
-                          ...itemScores,
-                          [q._id]: e.target.value,
-                        })
-                      }
-                      className="w-24 p-2 border-2 border-indigo-300 rounded-lg text-center font-black text-indigo-600"
-                    />
+                    <div className="flex flex-col items-center gap-1">
+                      <input
+                        type="number"
+                        step="0.1"
+                        max={q.points}
+                        min="0"
+                        value={itemScores[q._id] || ""}
+                        onChange={(e) => {
+                          const val = Number(e.target.value);
+                          const maxPts = Number(q.points || 0);
+
+                          setItemScores({
+                            ...itemScores,
+                            [q._id]: e.target.value,
+                          });
+
+                          // Kiểm tra lỗi trực quan realtime
+                          if (val > maxPts || val < 0) {
+                            setValidationErrors((prev) => ({
+                              ...prev,
+                              [q._id]: `Tối đa ${maxPts}đ`,
+                            }));
+                          } else {
+                            setValidationErrors((prev) => {
+                              const next = { ...prev };
+                              delete next[q._id];
+                              return next;
+                            });
+                          }
+                        }}
+                        className={`w-24 p-2 border-2 rounded-lg text-center font-black transition-all ${
+                          validationErrors[q._id]
+                            ? "border-rose-500 bg-rose-50 text-rose-600 animate-pulse focus:border-rose-500 outline-none"
+                            : "border-indigo-300 text-indigo-600 focus:border-indigo-500"
+                        }`}
+                      />
+                      {validationErrors[q._id] && (
+                        <span className="text-[10px] text-rose-500 font-bold uppercase tracking-tight">
+                          {validationErrors[q._id]}
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   {/* đáp án tự luận */}
@@ -343,11 +407,24 @@ const GradeSubmission = () => {
           />
         </div>
 
-        <button
+        {/* <button
           onClick={handleUpdateGrade}
           className="w-full py-8 bg-slate-900 text-white rounded-[2.5rem] font-black text-xl hover:bg-indigo-600 transition-all shadow-2xl uppercase tracking-widest"
         >
           Lưu & Hoàn tất chấm bài
+        </button> */}
+        <button
+          onClick={handleUpdateGrade}
+          disabled={Object.keys(validationErrors).length > 0}
+          className={`w-full py-8 text-white rounded-[2.5rem] font-black text-xl transition-all shadow-2xl uppercase tracking-widest ${
+            Object.keys(validationErrors).length > 0
+              ? "bg-slate-300 cursor-not-allowed opacity-70 border-2 border-slate-400/20"
+              : "bg-slate-900 hover:bg-indigo-600"
+          }`}
+        >
+          {Object.keys(validationErrors).length > 0
+            ? "⚠️ Điểm nhập chưa hợp lệ - Vui lòng kiểm tra lại"
+            : "Lưu & Hoàn tất chấm bài"}
         </button>
       </div>
     </div>

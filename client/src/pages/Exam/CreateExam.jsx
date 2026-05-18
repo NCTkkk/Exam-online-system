@@ -145,7 +145,7 @@ const CreateExam = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "https://exam-online-system-p6yp.onrender.com/api/exams/create",
+        "http://localhost:5000/api/exams/create",
         { title, subject, duration, maxAttempts, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );
