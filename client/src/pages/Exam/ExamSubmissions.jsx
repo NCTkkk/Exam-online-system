@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
-
 import axios from "axios";
-import * as XLSX from "xlsx"; // Import thư viện Excel
 import { useParams, useNavigate } from "react-router-dom";
 import {
   HiOutlineFilter,
@@ -13,6 +11,10 @@ import {
   HiOutlineChartBar,
   HiSave,
 } from "react-icons/hi";
+import { exportSubmissionsToExcel } from "../../utils/excelUtils";
+
+import Pagination from "../../components/common/Pagination";
+import { usePagination } from "../../components/common/usePagination";
 
 const ExamSubmissions = () => {
   const { examId } = useParams();
@@ -30,6 +32,8 @@ const ExamSubmissions = () => {
   const [statusFilter, setStatusFilter] = useState("all"); // all, graded, pending
   const [studentSearch, setStudentSearch] = useState("");
   const [extremeFilter, setExtremeFilter] = useState("all");
+
+  const [sortOrder, setSortOrder] = useState("none"); // none, asc (tăng), desc (giảm)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -107,15 +111,28 @@ const ExamSubmissions = () => {
       });
     }
 
-    // 4. Lọc theo Khoảng điểm (Sửa lỗi: Ép kiểu Number và xử lý chuỗi rỗng)
-    return result.filter((s) => {
+    // 4. Lọc theo Khoảng điểm
+    result = result.filter((s) => {
       const totalScore =
         (Number(s.scoreAuto) || 0) + (Number(s.scoreManual) || 0);
       const min = rangeMin === "" ? -Infinity : Number(rangeMin);
       const max = rangeMax === "" ? Infinity : Number(rangeMax);
-
       return totalScore >= min && totalScore <= max;
     });
+
+    // 🌟 THÊM LOGIC SẮP XẾP VÀO ĐÂY (TRƯỚC KHI RETURN):
+    if (sortOrder !== "none") {
+      result.sort((a, b) => {
+        const scoreA =
+          (Number(a.scoreAuto) || 0) + (Number(a.scoreManual) || 0);
+        const scoreB =
+          (Number(b.scoreAuto) || 0) + (Number(b.scoreManual) || 0);
+
+        return sortOrder === "asc" ? scoreA - scoreB : scoreB - scoreA;
+      });
+    }
+
+    return result;
   }, [
     submissions,
     studentSearch,
@@ -123,26 +140,23 @@ const ExamSubmissions = () => {
     extremeFilter,
     rangeMin,
     rangeMax,
+    sortOrder,
   ]);
 
-  // Hàm xử lý xuất Excel
-  const exportToExcel = () => {
-    if (filteredSubmissions.length === 0) {
-      alert("Không có dữ liệu phù hợp để xuất file!");
-      return;
-    }
-    const dataToExport = filteredSubmissions.map((s, idx) => ({
-      STT: idx + 1,
-      "Họ tên": s.student?.name || "N/A",
-      "Điểm TN": s.scoreAuto,
-      "Điểm TL": s.scoreManual || 0,
-      "Tổng điểm": s.scoreAuto + (s.scoreManual || 0),
-      "Ngày nộp": new Date(s.createdAt).toLocaleString("vi-VN"),
-    }));
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "Kết quả");
-    XLSX.writeFile(workbook, `${examTitle.replace(/\s+/g, "_")}_Loc.xlsx`);
+  const { next, prev, jump, currentData, currentPage, maxPage } = usePagination(
+    filteredSubmissions,
+    5,
+  );
+
+  // 🌟 Cập nhật hàm này để truyền thêm object chứa các state lọc hiện tại
+  const handleExportExcel = () => {
+    exportSubmissionsToExcel(filteredSubmissions, examTitle, {
+      studentSearch,
+      statusFilter,
+      extremeFilter,
+      rangeMin,
+      rangeMax,
+    });
   };
 
   const resetFilters = () => {
@@ -195,7 +209,7 @@ const ExamSubmissions = () => {
           </p>
         </div>
         <button
-          onClick={exportToExcel}
+          onClick={handleExportExcel}
           className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100 active:scale-95"
         >
           <HiOutlineDownload size={20} />
@@ -205,7 +219,7 @@ const ExamSubmissions = () => {
 
       {/* BỘ LỌC TINH GỌN - VERSION SANG TRỌNG */}
       <div className="bg-white p-6 rounded-[2.5rem] shadow-xl shadow-slate-100 border border-slate-100 mb-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-end">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
           {/* 1. Tìm tên thí sinh */}
           <div className="md:col-span-3 space-y-2">
             <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
@@ -224,7 +238,7 @@ const ExamSubmissions = () => {
           </div>
 
           {/* 2. Trạng thái */}
-          <div className="md:col-span-3 space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
               Trạng thái
             </span>
@@ -240,14 +254,14 @@ const ExamSubmissions = () => {
           </div>
 
           {/* 3. Phân loại bài làm */}
-          <div className="md:col-span-3 space-y-2">
+          <div className="md:col-span-2 space-y-2">
             <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
               Lọc bài thi
             </span>
             <select
               value={extremeFilter}
               onChange={(e) => setExtremeFilter(e.target.value)}
-              className="w-full h-12 px-4 bg-indigo-50/30 border border-indigo-100 rounded-2xl text-sm font-bold text-indigo-600 outline-none cursor-pointer focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all appearance-none"
+              className="w-full h-12 px-4 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 outline-none cursor-pointer focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all appearance-none"
             >
               <option value="all">📑 Tất cả bài nộp</option>
               <option value="highest">🏆 Điểm cao nhất</option>
@@ -255,7 +269,29 @@ const ExamSubmissions = () => {
             </select>
           </div>
 
-          {/* 4. Khoảng điểm - Nổi bật nhưng gọn gàng */}
+          <div className="md:col-span-2 space-y-2">
+            <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
+              Sắp xếp điểm
+            </span>
+            <div className="relative group">
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full h-12 px-4 bg-slate-50/50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-600 outline-none cursor-pointer focus:ring-4 focus:ring-indigo-500/5 focus:border-indigo-500 focus:bg-white transition-all appearance-none"
+              >
+                {/* Icon hiển thị danh sách bên trong menu xổ xuống */}
+                <option value="none">📊 Xếp hạng</option>
+                <option value="asc">📈 Thấp ➔ Cao</option>
+                <option value="desc">📉 Cao ➔ Thấp</option>
+              </select>
+
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[10px]">
+                ▼
+              </div>
+            </div>
+          </div>
+
+          {/* 5. Khoảng điểm */}
           <div className="md:col-span-2 space-y-2">
             <span className="text-[10px] font-black uppercase text-slate-400 ml-2 tracking-widest">
               Khoảng điểm
@@ -279,7 +315,8 @@ const ExamSubmissions = () => {
             </div>
           </div>
 
-          <div className="md:col-span-1 flex items-center justify-center pb-4">
+          {/* Nút Reset */}
+          <div className="md:col-span-1 flex items-center justify-center pb-3">
             <button
               onClick={() => {
                 setStudentSearch("");
@@ -287,8 +324,9 @@ const ExamSubmissions = () => {
                 setExtremeFilter("all");
                 setRangeMin("");
                 setRangeMax("");
+                setSortOrder("none"); // 🌟 Reset luôn cả Sort
               }}
-              className="group flex items-center gap-2 text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-widest whitespace-nowrap"
+              className="group flex items-center gap-1 text-[10px] font-black text-slate-400 hover:text-rose-500 transition-all uppercase tracking-widest whitespace-nowrap"
             >
               <HiRefresh
                 size={16}
@@ -334,7 +372,7 @@ const ExamSubmissions = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {filteredSubmissions.map((s) => (
+            {currentData.map((s) => (
               <tr
                 key={s._id}
                 className="hover:bg-indigo-50/20 transition-colors group"
@@ -429,6 +467,15 @@ const ExamSubmissions = () => {
             </p>
           </div>
         )}
+
+        {/*  */}
+        <Pagination
+          currentPage={currentPage}
+          maxPage={maxPage}
+          next={next}
+          prev={prev}
+          jump={jump}
+        />
       </div>
     </div>
   );

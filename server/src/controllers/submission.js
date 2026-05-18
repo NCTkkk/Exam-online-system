@@ -20,8 +20,6 @@ const calculateRank = (elo) => {
 
 const updateUserStats = async (studentIdInput) => {
   try {
-    console.log("=== BẮT ĐẦU UPDATE STATS ===");
-
     // 1. Ép kiểu ID về string để tránh lỗi Object query
     const studentId = studentIdInput?.toString();
     if (!studentId) {
@@ -75,8 +73,6 @@ const updateUserStats = async (studentIdInput) => {
     if (!updatedUser) {
       console.error("❌ Không tìm thấy User để cập nhật trong DB!");
     }
-
-    console.log("=== KẾT THÚC UPDATE STATS ===");
   } catch (error) {
     console.error("💥 LỖI TRONG updateUserStats:", error.message);
   }
@@ -274,11 +270,69 @@ const gradeSubmission = async (req, res) => {
   try {
     const { scoreManual, feedback, scoreManualDetails, essayAnswers } =
       req.body;
+
+    // 1. Tìm bài nộp hiện tại và populate thông tin đề thi để lấy cấu trúc điểm gốc
+    const submission = await Submission.findById(
+      req.params.submissionId,
+    ).populate("exam");
+    if (!submission) return res.status(404).json("Không tìm thấy bài nộp");
+    if (!submission.exam)
+      return res
+        .status(404)
+        .json("Không tìm thấy đề thi liên quan đến bài nộp này");
+
+    let examTotalPoints = Number(submission.exam.totalPoints) || 0;
+    if (examTotalPoints === 0) {
+      let tempTotal = 0;
+      submission.exam.questions?.forEach((q) => {
+        if (q.type === "passage_group") {
+          q.subQuestions?.forEach(
+            (sq) => (tempTotal += Number(sq.points || 0)),
+          );
+        } else if (q.type !== "instruction") {
+          tempTotal += Number(q.points || 0);
+        }
+      });
+      examTotalPoints = tempTotal;
+    }
+
+    // 2. KIỂM TRA: Điểm từng câu tự luận không được vượt quá điểm của chính nó trong đề
+    if (scoreManualDetails && Array.isArray(scoreManualDetails)) {
+      for (const detail of scoreManualDetails) {
+        const questionData = findQuestionInExam(
+          submission.exam,
+          detail.questionId,
+        );
+
+        if (questionData) {
+          const maxQuestionPoints = Number(questionData.points) || 0;
+          const assignedPoints = Number(detail.score) || 0;
+
+          if (assignedPoints > maxQuestionPoints) {
+            return res.status(400).json({
+              message: `Lỗi: Điểm chấm cho câu hỏi (ID: ${detail.questionId}) là ${assignedPoints}đ, vượt quá điểm tối đa cho phép của câu này là ${maxQuestionPoints}đ.`,
+            });
+          }
+        }
+      }
+    }
+
+    // 3. KIỂM TRA: Tổng điểm (Trắc nghiệm + Tự luận mới) không được vượt quá tổng điểm của đề thi
+    const totalScoreManual = Number(scoreManual) || 0;
+    const totalScoreAuto = Number(submission.scoreAuto) || 0;
+
+    if (totalScoreAuto + totalScoreManual > examTotalPoints) {
+      return res.status(400).json({
+        message: `Lỗi: Tổng điểm bài làm (Trắc nghiệm có sẵn: ${totalScoreAuto}đ + Tự luận chấm thêm: ${totalScoreManual}đ) vượt quá tổng điểm tối đa của toàn bộ đề thi (${examTotalPoints}đ).`,
+      });
+    }
+
+    // 4. Hợp lệ -> Tiến hành cập nhật vào Database
     const updatedSubmission = await Submission.findByIdAndUpdate(
       req.params.submissionId,
       {
         $set: {
-          scoreManual,
+          scoreManual: totalScoreManual,
           essayAnswers,
           feedback,
           scoreManualDetails,
@@ -287,15 +341,14 @@ const gradeSubmission = async (req, res) => {
       },
       { new: true },
     );
-    if (!updatedSubmission)
-      return res.status(404).json("Không tìm thấy bài nộp");
 
+    // 5. Cập nhật lại Rank và ELO chuẩn cho học sinh
     const studentIdStr = updatedSubmission.student.toString();
     await updateUserStats(studentIdStr);
 
-    await updateUserStats(updatedSubmission.student);
     res.json(updatedSubmission);
   } catch (err) {
+    console.error("Lỗi gradeSubmission:", err);
     res.status(500).json("Lỗi khi cập nhật điểm");
   }
 };
@@ -477,4 +530,5 @@ module.exports = {
   getReview,
   getActivityLog,
   deleteSubmission,
+  updateUserStats,
 };

@@ -1,13 +1,115 @@
 const Exam = require("../models/Exam");
+const Submission = require("../models/Submission");
+const { updateUserStats } = require("./submission");
+
+const recalculateExamSubmissions = async (exam) => {
+  try {
+    // 1. Tìm tất cả các bài nộp thuộc đề thi này
+    const submissions = await Submission.find({ exam: exam._id });
+    if (!submissions || submissions.length === 0) return;
+
+    console.log(
+      `=> [Hệ thống] Phát hiện đáp án thay đổi. Bắt đầu tính lại điểm cho ${submissions.length} bài nộp của đề: "${exam.title}"`,
+    );
+
+    // Helper nội bộ tìm câu hỏi nhanh từ cấu trúc đề thi mới nhất (hỗ trợ cả câu hỏi lẻ lẫn bài đọc nhóm)
+    const findQuestionInExamObj = (examObj, questionId) => {
+      if (!examObj || !examObj.questions || !questionId) return null;
+      const targetId = questionId.toString();
+
+      let questionData = examObj.questions.find(
+        (q) => q._id && q._id.toString() === targetId,
+      );
+      if (!questionData) {
+        for (const mainQ of examObj.questions) {
+          if (
+            mainQ.type === "passage_group" &&
+            Array.isArray(mainQ.subQuestions)
+          ) {
+            const subQ = mainQ.subQuestions.find(
+              (sq) => sq._id && sq._id.toString() === targetId,
+            );
+            if (subQ) {
+              questionData = subQ;
+              break;
+            }
+          }
+        }
+      }
+      return questionData;
+    };
+
+    // 2. Duyệt qua từng bài làm để chấm lại phần trắc nghiệm
+    for (const sub of submissions) {
+      let newScoreAuto = 0;
+
+      const updatedAnswers = sub.answers.map((ans) => {
+        const questionData = findQuestionInExamObj(exam, ans.questionId);
+        let isCorrect = false;
+
+        // Chỉ tính toán lại trạng thái đúng/sai nếu câu hỏi còn tồn tại và có thiết lập đáp án đúng
+        if (questionData && questionData.correctAnswer) {
+          isCorrect =
+            String(ans.content || "").trim() ===
+            String(questionData.correctAnswer || "").trim();
+          if (isCorrect) {
+            newScoreAuto += Number(questionData.points) || 0;
+          }
+        }
+
+        return {
+          ...ans.toObject(),
+          isCorrect,
+        };
+      });
+
+      // 3. Lưu điểm số tự động mới vào Database cho bài nộp này
+      sub.answers = updatedAnswers;
+      sub.scoreAuto = newScoreAuto;
+      await sub.save();
+
+      // 4. Nếu bài thi đã ở trạng thái hoàn thành (graded), tái đồng bộ Elo/Rank bằng hàm import từ submission
+      if (sub.status === "graded") {
+        await updateUserStats(sub.student);
+      }
+    }
+    console.log(
+      `✅ [Hệ thống] Đã cập nhật xong toàn bộ điểm số mới cho học sinh.`,
+    );
+  } catch (error) {
+    console.error("💥 LỖI TRONG recalculateExamSubmissions:", error.message);
+  }
+};
 
 // 1. Tạo đề thi mới
 const createExam = async (req, res) => {
   try {
-    const newExam = new Exam({
+    // 🌟 TỰ ĐỘNG TÍNH TỔNG ĐIỂM (TOTAL POINTS) CHO ĐỀ THI MỚI
+    let total = 0;
+    if (req.body.questions && Array.isArray(req.body.questions)) {
+      req.body.questions.forEach((q) => {
+        if (q.type === "passage_group" && q.subQuestions) {
+          // Cộng dồn điểm của các câu hỏi nhỏ nằm trong nhóm bài đọc
+          q.subQuestions.forEach((sub) => {
+            total += Number(sub.points || 0);
+          });
+        } else if (q.type !== "instruction") {
+          // Cộng điểm của các câu độc lập (trừ câu hướng dẫn)
+          total += Number(q.points || 0);
+        }
+      });
+    }
+
+    // Gán tổng điểm vừa tính toán được vào cấu trúc dữ liệu đề thi
+    const examData = {
       ...req.body,
+      totalPoints: total, // Đảm bảo totalPoints luôn có giá trị thật khi lưu
       author: req.user.id,
-    });
+    };
+
+    const newExam = new Exam(examData);
     const savedExam = await newExam.save();
+
     res.status(201).json(savedExam);
   } catch (err) {
     res.status(500).json(err);
@@ -107,7 +209,6 @@ const getExamById = async (req, res) => {
 
     // 2. NẾU LÀ HỌC SINH (MEMBER), KIỂM TRA LƯỢT THI
     if (req.user.role === "member" && examObj.maxAttempts > 0) {
-      const Submission = require("../models/Submission");
       const attemptCount = await Submission.countDocuments({
         exam: examObj._id,
         student: req.user.id,
@@ -160,6 +261,8 @@ const updateExam = async (req, res) => {
       { $set: req.body },
       { new: true },
     );
+
+    recalculateExamSubmissions(updatedExam);
 
     res.status(200).json(updatedExam);
   } catch (err) {

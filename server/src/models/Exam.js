@@ -32,7 +32,7 @@ const examSchema = new mongoose.Schema(
 
         subQuestions: [
           {
-            content: String, // Nội dung câu hỏi con (VD: What is the main idea?)
+            content: String, // Nội dung câu hỏi con
             options: [String], // 4 đáp án cho câu hỏi con
             correctAnswer: String, // Đáp án đúng câu hỏi con
             points: { type: Number, default: 1 },
@@ -44,7 +44,6 @@ const examSchema = new mongoose.Schema(
   { timestamps: true, strict: false },
 );
 
-// hàm helper tính tổng điểm chung
 const calculateTotalPoints = (questions) => {
   let total = 0;
   if (!questions || !Array.isArray(questions)) return 0;
@@ -62,23 +61,22 @@ const calculateTotalPoints = (questions) => {
   return total;
 };
 
-examSchema.pre("save", function (next) {
+examSchema.pre("save", async function () {
   this.totalPoints = calculateTotalPoints(this.questions);
-  next();
 });
 
-examSchema.pre("findOneAndUpdate", function (next) {
+examSchema.pre("findOneAndUpdate", async function () {
   const updateData = this.getUpdate();
 
-  if (updateData && updateData.$set && updateData.$set.questions) {
-    updateData.$set.totalPoints = calculateTotalPoints(
-      updateData.$set.questions,
-    );
-  } else if (updateData && updateData.questions) {
-    updateData.totalPoints = calculateTotalPoints(updateData.questions);
+  if (updateData) {
+    if (updateData.$set && updateData.$set.questions) {
+      updateData.$set.totalPoints = calculateTotalPoints(
+        updateData.$set.questions,
+      );
+    } else if (updateData.questions) {
+      updateData.totalPoints = calculateTotalPoints(updateData.questions);
+    }
   }
-
-  next();
 });
 
 module.exports = mongoose.model("Exam", examSchema);
