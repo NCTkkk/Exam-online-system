@@ -33,9 +33,6 @@ router.put(
   submission.gradeSubmission,
 );
 
-// server/routes/submission.js
-router.get("/review/:submissionId", verifyToken, submission.getReview);
-
 // 1. Sửa Route /exam/:examId (Dành cho danh sách bài nộp của giáo viên)
 // Sửa route lấy danh sách bài nộp theo đề thi
 router.get(

@@ -32,7 +32,7 @@ const ManageExams = () => {
 
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "http://localhost:5000/api/exams/my-exams",
+          "https://exam-online-system-p6yp.onrender.com/api/exams/my-exams",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
@@ -110,9 +110,12 @@ const ManageExams = () => {
     ) {
       try {
         const token = localStorage.getItem("token");
-        await axios.delete(`http://localhost:5000/api/exams/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        await axios.delete(
+          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
         setExams(exams.filter((e) => e._id !== id));
       } catch (err) {
         alert("Lỗi: " + (err.response?.data || "Không thể xóa"));

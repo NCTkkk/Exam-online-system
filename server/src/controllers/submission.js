@@ -399,62 +399,6 @@ const getSubmissionsByExam = async (req, res) => {
   }
 };
 
-const getReview = async (req, res) => {
-  try {
-    const submission = await Submission.findById(
-      req.params.submissionId,
-    ).populate("exam");
-
-    if (!submission) return res.status(404).json("Không tìm thấy bài nộp");
-
-    const isOwner = submission.student.toString() === req.user.id;
-    const isExamAuthor = submission.exam?.author.toString() === req.user.id;
-
-    if (!isOwner && !isExamAuthor) {
-      return res.status(403).json("Bạn không có quyền xem bài làm này");
-    }
-
-    // Học sinh chỉ được xem review khi bài đã chấm xong
-    if (req.user.role === "member" && submission.status !== "graded") {
-      return res.status(403).json({
-        message: "Bài làm của bạn chưa được chấm xong. Vui lòng quay lại sau.",
-        status: submission.status,
-      });
-    }
-
-    const fullData = submission.toObject();
-
-    if (
-      fullData.exam &&
-      (!fullData.exam.totalPoints || fullData.exam.totalPoints === 0)
-    ) {
-      let tempTotal = 0;
-      fullData.exam.questions?.forEach((q) => {
-        if (q.type === "passage_group") {
-          q.subQuestions?.forEach(
-            (sq) => (tempTotal += Number(sq.points || 0)),
-          );
-        } else if (q.type !== "instruction") {
-          tempTotal += Number(q.points || 0);
-        }
-      });
-      fullData.exam.totalPoints = tempTotal;
-    }
-
-    if (fullData.exam && fullData.exam.questions) {
-      fullData.answers = fullData.answers.map((ans) => ({
-        ...ans,
-        questionId: findQuestionInExam(fullData.exam, ans.questionId),
-      }));
-    }
-
-    res.json(fullData);
-  } catch (err) {
-    console.error("Lỗi getReview:", err);
-    res.status(500).json("Lỗi server");
-  }
-};
-
 const getSubmissionDetail = async (req, res) => {
   try {
     const submission = await Submission.findById(req.params.submissionId)
@@ -598,7 +542,7 @@ module.exports = {
   gradeSubmission,
   getSubmissionsByExam,
   getSubmissionDetail,
-  getReview,
+
   getActivityLog,
   deleteSubmission,
   updateUserStats,

@@ -32,7 +32,7 @@ const GradeSubmission = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `http://localhost:5000/api/submissions/detail/${submissionId}`,
+          `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${submissionId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -65,7 +65,7 @@ const GradeSubmission = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `http://localhost:5000/api/submissions/grade/${submissionId}`,
+        `https://exam-online-system-p6yp.onrender.com/api/submissions/grade/${submissionId}`,
         {
           scoreManual: totalManual,
           feedback: feedback,
