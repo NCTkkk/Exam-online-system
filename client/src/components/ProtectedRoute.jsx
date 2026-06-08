@@ -7,10 +7,10 @@ const ProtectedRoute = ({ children, roleRequired }) => {
 
   if (loading) return <div>Đang tải...</div>;
 
-  if (!user) return <Navigate to="/login" />;
+  if (!user) return <Navigate to="/login" replace />;
 
   if (roleRequired && user.role !== roleRequired) {
-    return <Navigate to="/" />; // Hoặc trang báo lỗi không có quyền
+    return <Navigate to="/" replace />; // Hoặc trang báo lỗi không có quyền
   }
 
   return children;

@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
@@ -9,9 +9,14 @@ import {
   HiOutlineChevronRight,
   HiOutlineAcademicCap,
 } from "react-icons/hi";
+import axios from "axios";
 
 const StudentDashboard = () => {
   const { user } = useContext(AuthContext);
+  const [stats, setStats] = useState({
+    totalSubmissions: 0,
+    elo: 0,
+  });
   const navigate = useNavigate();
 
   // Animation variants cho các thẻ bài viết/chức năng
@@ -23,6 +28,28 @@ const StudentDashboard = () => {
       transition: { delay: i * 0.1, duration: 0.5, ease: "easeOut" },
     }),
   };
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          "http://localhost:5000/api/users/profile-stats ",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        setStats({
+          totalSubmissions: res.data.totalSubmissions || 0,
+          elo: res.data.elo,
+        });
+      } catch (err) {
+        console.error("Lỗi lấy thống kê:", err);
+      }
+    };
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] py-10 px-4 md:px-8">
@@ -53,16 +80,18 @@ const StudentDashboard = () => {
             className="flex gap-4 bg-white p-4 rounded-3xl shadow-sm border border-slate-100"
           >
             <div className="text-center px-4">
-              <p className="text-2xl font-black text-slate-800">12</p>
+              <p className="text-2xl font-black text-slate-800">
+                {stats.totalSubmissions}
+              </p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
                 Đã làm
               </p>
             </div>
             <div className="w-px bg-slate-100 h-10 self-center"></div>
             <div className="text-center px-4">
-              <p className="text-2xl font-black text-indigo-600">8.5</p>
+              <p className="text-2xl font-black text-indigo-600">{stats.elo}</p>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Trung bình
+                Elo
               </p>
             </div>
           </motion.div>

@@ -28,17 +28,22 @@ const getAllUsers = async (req, res) => {
 
 const deleteUser = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);
+    const deletedUser = await User.findByIdAndDelete(req.params.id);
+    if (!deletedUser) {
+      return res.status(404).json("Người dùng không tồn tại");
+    }
     res.status(200).json("Người dùng đã bị xóa");
   } catch (error) {
-    res.status(500).json(err);
+    res.status(500).json(error);
   }
 };
 
 const changePassword = async (req, res) => {
   try {
     const { oldPassword, newPassword } = req.body;
-    const user = await User.findById(req.body.id);
+    const user = await User.findById(req.user.id);
+
+    if (!user) return res.status(404).json("Người dùng không tồn tại");
 
     const isMatch = await bcrypt.compare(oldPassword, user.password);
     if (!isMatch) return res.status(400).json("Mật khẩu cũ không chính xác");
@@ -50,7 +55,7 @@ const changePassword = async (req, res) => {
 
     res.status(200).json("Đổi mật khẩu thành công");
   } catch (error) {
-    res.status(500).json(err);
+    res.status(500).json(error);
   }
 };
 

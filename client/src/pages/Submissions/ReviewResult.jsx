@@ -14,6 +14,7 @@ const ReviewResult = () => {
   const { id } = useParams();
   const [result, setResult] = useState(null);
   const [isExamDeleted, setIsExamDeleted] = useState(false);
+  const [blockedMessage, setBlockedMessage] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -21,7 +22,7 @@ const ReviewResult = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/detail/${id}`,
+          `http://localhost:5000/api/submissions/detail/${id}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -33,6 +34,16 @@ const ReviewResult = () => {
         setResult(res.data);
       } catch (err) {
         console.error("Lỗi fetch:", err);
+
+        if (err.response?.status === 403) {
+          setBlockedMessage(
+            err.response?.data?.message ||
+              "Bạn không có quyền xem bài làm này hoặc bài làm chưa được chấm xong.",
+          );
+          setResult({});
+          return;
+        }
+
         if (err.response?.status === 404) {
           setIsExamDeleted(true);
           setResult({}); // Set object rỗng để thoát khỏi màn hình Loading
@@ -61,6 +72,27 @@ const ReviewResult = () => {
         </div>
       </div>
     );
+
+  if (blockedMessage) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white p-6 text-center">
+        <div className="max-w-md">
+          <h2 className="text-3xl font-black text-slate-800 mb-4">
+            Bài chưa chấm xong
+          </h2>
+          <p className="text-slate-500 mb-8 leading-relaxed font-medium">
+            {blockedMessage}
+          </p>
+          <button
+            onClick={() => navigate("/view-results")}
+            className="w-full bg-slate-900 text-white py-4 rounded-2xl font-black uppercase tracking-widest hover:bg-indigo-600 transition-all"
+          >
+            Quay lại danh sách
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Hiển thị khi đề bị xóa
   if (isExamDeleted) {

@@ -65,13 +65,9 @@ const TakeExam = () => {
 
     try {
       // Sử dụng axios để nộp bài
-      await axios.post(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
-        data,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await axios.post(`http://localhost:5000/api/submissions/submit`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log("Auto-submitted due to exit");
     } catch (e) {
       console.error("Auto-submit failed", e);
@@ -83,12 +79,9 @@ const TakeExam = () => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         setExam(res.data);
         setTimeLeft(res.data.duration * 60);
@@ -190,7 +183,7 @@ const TakeExam = () => {
 
     try {
       await axios.post(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
+        `http://localhost:5000/api/submissions/submit`,
         {
           examId: id,
           answers: formattedAnswers,

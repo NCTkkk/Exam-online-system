@@ -10,12 +10,20 @@ router.get("/leaderboard/:examId", submission.getLeaderboard);
 
 router.get("/my-results", verifyToken, submission.getMyResults);
 
+// 3. Lấy thống kê cá nhân cho giáo viên
+router.get(
+  "/teacher/stats",
+  verifyToken,
+  isTeacher,
+  submission.getTeacherStats,
+);
+
 // 4. Lấy chi tiết bài nộp
 router.get(
   "/teacher/activity-log",
   verifyToken,
   isTeacher,
-  submission.getActivityLog, // Tên hàm bạn vừa thêm ở trên
+  submission.getActivityLog,
 );
 
 router.put(

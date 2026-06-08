@@ -39,19 +39,27 @@ const updateUserStats = async (studentIdInput) => {
       const examId = sub.exam?._id?.toString();
       if (!examId) return;
 
+      // Tính điểm chuẩn hóa trên thang 10 cho mỗi bài làm
       const currentTotal =
         (Number(sub.scoreAuto) || 0) + (Number(sub.scoreManual) || 0);
 
-      if (!bestScoresMap[examId] || currentTotal > bestScoresMap[examId]) {
-        bestScoresMap[examId] = currentTotal;
+      const examTotalPoints = Number(sub.exam?.totalPoints) || 0;
+      if (examTotalPoints <= 0) return;
+
+      const normalizedScore = (currentTotal / examTotalPoints) * 10;
+
+      if (
+        bestScoresMap[examId] === undefined ||
+        normalizedScore > bestScoresMap[examId]
+      ) {
+        bestScoresMap[examId] = normalizedScore;
       }
     });
 
     // 3. Tính toán các chỉ số
-    const totalElo = Object.values(bestScoresMap).reduce(
-      (sum, score) => sum + score,
-      0,
-    );
+    const totalElo = Object.values(bestScoresMap)
+      .reduce((sum, score) => sum + score, 0)
+      .toFixed(2);
     const uniqueExams = Object.keys(bestScoresMap).length;
     const totalSubs = allSubmissions.length;
     const newRank = calculateRank(totalElo);
@@ -134,13 +142,13 @@ const submitExam = async (req, res) => {
     let hasEssay = false;
     if (exam.questions && exam.questions.length > 0) {
       for (const q of exam.questions) {
-        if (q.type === "essay" || q.type === "essay") {
+        if (q.type === "essay") {
           hasEssay = true;
           break;
         }
         if (q.type === "passage_group" && q.subQuestions) {
           const hasSubEssay = q.subQuestions.some(
-            (subQ) => subQ.type === "essay" || subQ.type === "essay",
+            (subQ) => subQ.type === "essay",
           );
           if (hasSubEssay) {
             hasEssay = true;
@@ -192,6 +200,33 @@ const submitExam = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json(err);
+  }
+};
+
+const getTeacherStats = async (req, res) => {
+  try {
+    const teacherId = req.user.id;
+    const myExams = await Exam.find({ author: teacherId }).select("_id title");
+    const examIds = myExams.map((e) => e._id);
+
+    const totalExams = examIds.length;
+
+    const totalSubmissions = await Submission.countDocuments({
+      exam: { $in: examIds },
+    });
+
+    const totalStudents = await Submission.distinct("student", {
+      exam: { $in: examIds },
+    });
+
+    res.json({
+      totalExams,
+      totalSubmissions,
+      totalStudents: totalStudents.length,
+    });
+  } catch (error) {
+    console.error("Lỗi getTeacherStats:", error);
+    res.status(500).json("Lỗi server khi lấy thống kê giáo viên");
   }
 };
 
@@ -372,6 +407,21 @@ const getReview = async (req, res) => {
 
     if (!submission) return res.status(404).json("Không tìm thấy bài nộp");
 
+    const isOwner = submission.student.toString() === req.user.id;
+    const isExamAuthor = submission.exam?.author.toString() === req.user.id;
+
+    if (!isOwner && !isExamAuthor) {
+      return res.status(403).json("Bạn không có quyền xem bài làm này");
+    }
+
+    // Học sinh chỉ được xem review khi bài đã chấm xong
+    if (req.user.role === "member" && submission.status !== "graded") {
+      return res.status(403).json({
+        message: "Bài làm của bạn chưa được chấm xong. Vui lòng quay lại sau.",
+        status: submission.status,
+      });
+    }
+
     const fullData = submission.toObject();
 
     if (
@@ -413,6 +463,26 @@ const getSubmissionDetail = async (req, res) => {
 
     if (!submission) return res.status(404).json("Không tìm thấy bài làm");
 
+    const studentId = submission.student?._id
+      ? submission.student._id.toString()
+      : submission.student?.toString();
+
+    const isOwner = studentId === req.user.id;
+    const isExamAuthor = submission.exam?.author?.toString() === req.user.id;
+    const isAdmin = req.user.role === "admin";
+
+    if (!isOwner && !isExamAuthor && !isAdmin) {
+      return res.status(403).json("Bạn không có quyền xem bài làm này");
+    }
+
+    // Học sinh chỉ được xem chi tiết khi bài đã chấm xong
+    if (req.user.role === "member" && submission.status !== "graded") {
+      return res.status(403).json({
+        message: "Bài làm của bạn chưa được chấm xong. Vui lòng quay lại sau.",
+        status: submission.status,
+      });
+    }
+
     const fullData = submission.toObject();
 
     if (
@@ -447,6 +517,7 @@ const getSubmissionDetail = async (req, res) => {
     res.status(500).json("Lỗi server");
   }
 };
+
 const getActivityLog = async (req, res) => {
   try {
     const teacherId = req.user.id;
@@ -491,7 +562,7 @@ const getActivityLog = async (req, res) => {
 
 // controllers/submissionController.js
 
-deleteSubmission = async (req, res) => {
+const deleteSubmission = async (req, res) => {
   try {
     const { submissionId } = req.params;
 
@@ -501,7 +572,7 @@ deleteSubmission = async (req, res) => {
     }
 
     const studentId = sub.student;
-    const examId = sub.exam._id;
+    // const examId = sub.exam._id;
 
     // 2. Xóa bài nộp
     await Submission.findByIdAndDelete(submissionId);
@@ -531,4 +602,5 @@ module.exports = {
   getActivityLog,
   deleteSubmission,
   updateUserStats,
+  getTeacherStats,
 };

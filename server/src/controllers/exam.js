@@ -221,6 +221,25 @@ const getExamById = async (req, res) => {
       }
     }
 
+    // 3. NẾU LÀ HỌC SINH, ẨN ĐÁP ÁN ĐÚNG TRƯỚC KHI TRẢ VỀ
+    if (req.user.role === "member") {
+      examObj.questions = examObj.questions?.map((q) => {
+        const question = { ...q };
+
+        delete question.correctAnswer;
+
+        if (Array.isArray(question.subQuestions)) {
+          question.subQuestions = question.subQuestions.map((sub) => {
+            const subQuestion = { ...sub };
+            delete subQuestion.correctAnswer;
+            return subQuestion;
+          });
+        }
+
+        return question;
+      });
+    }
+
     // Trả về object đã được xử lý điểm
     res.json(examObj);
   } catch (err) {
@@ -235,6 +254,12 @@ const updateExam = async (req, res) => {
     // 1. Lấy dữ liệu hiện tại từ DB nếu trong req.body không gửi đủ questions
     const currentExam = await Exam.findById(req.params.id);
     if (!currentExam) return res.status(404).json("Không tìm thấy đề thi");
+
+    if (currentExam.author.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json("Bạn không có quyền chỉnh sửa đề của người khác");
+    }
 
     // 2. Xác định mảng questions dùng để tính điểm
     // Ưu tiên mảng questions mới từ req.body, nếu không có thì dùng mảng cũ trong DB
@@ -262,7 +287,7 @@ const updateExam = async (req, res) => {
       { new: true },
     );
 
-    recalculateExamSubmissions(updatedExam);
+    await recalculateExamSubmissions(updatedExam);
 
     res.status(200).json(updatedExam);
   } catch (err) {

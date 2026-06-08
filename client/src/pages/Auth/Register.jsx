@@ -31,10 +31,7 @@ const Register = () => {
     e.preventDefault();
     setLoading(true);
     try {
-      await axios.post(
-        "https://exam-online-system-p6yp.onrender.com/api/auth/register",
-        formData,
-      );
+      await axios.post("http://localhost:5000/api/auth/register", formData);
       alert("🎉 Chúc mừng! Đăng ký thành công.");
       navigate("/login");
     } catch (err) {
@@ -153,6 +150,7 @@ const Register = () => {
               <input
                 type="password"
                 required
+                minLength={6}
                 className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none transition-all font-semibold text-slate-700"
                 placeholder="Mật khẩu (ít nhất 6 ký tự)"
                 onChange={(e) =>
