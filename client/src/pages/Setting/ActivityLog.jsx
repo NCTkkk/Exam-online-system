@@ -8,6 +8,7 @@ import Pagination from "../../components/common/Pagination";
 const ActivityLog = () => {
   const [activities, setActivities] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { user } = useContext(AuthContext);
 
   // Khởi tạo phân trang (5 bài thi mỗi trang)
@@ -20,6 +21,7 @@ const ActivityLog = () => {
     const fetchActivities = async () => {
       try {
         setLoading(true);
+        setError("");
         const token = localStorage.getItem("token");
         const res = await axios.get(
           "https://exam-online-system-p6yp.onrender.com/api/submissions/my-results",
@@ -34,6 +36,10 @@ const ActivityLog = () => {
         setActivities(sorted);
       } catch (err) {
         console.error("Lỗi khi tải nhật ký:", err);
+        setError(
+          err.response?.data?.message ||
+            "Lỗi khi tải nhật ký. Vui lòng thử lại sau.",
+        );
       } finally {
         setLoading(false);
       }

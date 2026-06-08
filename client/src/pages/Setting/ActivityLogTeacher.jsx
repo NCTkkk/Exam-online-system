@@ -13,6 +13,7 @@ const ActivityLogTeacher = () => {
   const [logs, setLogs] = useState([]);
   const [filteredLogs, setFilteredLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
 
@@ -25,6 +26,7 @@ const ActivityLogTeacher = () => {
   const fetchLogs = async () => {
     try {
       setLoading(true);
+      setError("");
       const res = await axios.get(
         "https://exam-online-system-p6yp.onrender.com/api/submissions/teacher/activity-log",
         {
@@ -36,6 +38,10 @@ const ActivityLogTeacher = () => {
       setLogs(res.data);
     } catch (err) {
       console.error("Lỗi fetch log", err);
+      setError(
+        err.response?.data?.message ||
+          "Lỗi khi tải nhật ký. Vui lòng thử lại sau.",
+      );
     } finally {
       setLoading(false);
     }

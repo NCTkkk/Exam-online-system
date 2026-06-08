@@ -356,7 +356,6 @@ const ViewResults = () => {
                           )}
                       </div>
                     </div>
-
                     {/* Phần điểm & Trạng thái */}
                     <div className="flex flex-col items-center md:items-end w-full md:w-auto min-w-[140px] border-t md:border-none pt-4 md:pt-0">
                       <div className="text-center md:text-right mb-3">

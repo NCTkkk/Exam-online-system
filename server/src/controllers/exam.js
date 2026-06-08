@@ -8,10 +8,6 @@ const recalculateExamSubmissions = async (exam) => {
     const submissions = await Submission.find({ exam: exam._id });
     if (!submissions || submissions.length === 0) return;
 
-    console.log(
-      `=> [Hệ thống] Phát hiện đáp án thay đổi. Bắt đầu tính lại điểm cho ${submissions.length} bài nộp của đề: "${exam.title}"`,
-    );
-
     // Helper nội bộ tìm câu hỏi nhanh từ cấu trúc đề thi mới nhất (hỗ trợ cả câu hỏi lẻ lẫn bài đọc nhóm)
     const findQuestionInExamObj = (examObj, questionId) => {
       if (!examObj || !examObj.questions || !questionId) return null;
@@ -73,9 +69,6 @@ const recalculateExamSubmissions = async (exam) => {
         await updateUserStats(sub.student);
       }
     }
-    console.log(
-      `✅ [Hệ thống] Đã cập nhật xong toàn bộ điểm số mới cho học sinh.`,
-    );
   } catch (error) {
     console.error("💥 LỖI TRONG recalculateExamSubmissions:", error.message);
   }
@@ -141,7 +134,11 @@ const getMyExams = async (req, res) => {
 
     res.status(200).json(updatedExams);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Lỗi getMyExams:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lấy đề của giáo viên",
+      error: err.message,
+    });
   }
 };
 
@@ -173,7 +170,11 @@ const getAllExamsPublished = async (req, res) => {
 
     res.json(examsWithAttemptCount);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Lỗi getAllExamsPublished:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lấy danh sách đề thi",
+      error: err.message,
+    });
   }
 };
 
@@ -221,6 +222,25 @@ const getExamById = async (req, res) => {
       }
     }
 
+    // 3. NẾU LÀ HỌC SINH, ẨN ĐÁP ÁN ĐÚNG TRƯỚC KHI TRẢ VỀ
+    if (req.user.role === "member") {
+      examObj.questions = examObj.questions?.map((q) => {
+        const question = { ...q };
+
+        delete question.correctAnswer;
+
+        if (Array.isArray(question.subQuestions)) {
+          question.subQuestions = question.subQuestions.map((sub) => {
+            const subQuestion = { ...sub };
+            delete subQuestion.correctAnswer;
+            return subQuestion;
+          });
+        }
+
+        return question;
+      });
+    }
+
     // Trả về object đã được xử lý điểm
     res.json(examObj);
   } catch (err) {
@@ -235,6 +255,12 @@ const updateExam = async (req, res) => {
     // 1. Lấy dữ liệu hiện tại từ DB nếu trong req.body không gửi đủ questions
     const currentExam = await Exam.findById(req.params.id);
     if (!currentExam) return res.status(404).json("Không tìm thấy đề thi");
+
+    if (currentExam.author.toString() !== req.user.id) {
+      return res
+        .status(403)
+        .json("Bạn không có quyền chỉnh sửa đề của người khác");
+    }
 
     // 2. Xác định mảng questions dùng để tính điểm
     // Ưu tiên mảng questions mới từ req.body, nếu không có thì dùng mảng cũ trong DB
@@ -262,7 +288,7 @@ const updateExam = async (req, res) => {
       { new: true },
     );
 
-    recalculateExamSubmissions(updatedExam);
+    await recalculateExamSubmissions(updatedExam);
 
     res.status(200).json(updatedExam);
   } catch (err) {

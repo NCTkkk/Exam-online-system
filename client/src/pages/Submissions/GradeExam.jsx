@@ -11,6 +11,7 @@ import {
 
 const GradeExam = () => {
   const { submissionId } = useParams();
+
   const navigate = useNavigate();
 
   const [submission, setSubmission] = useState(null);

@@ -153,6 +153,7 @@ const Register = () => {
               <input
                 type="password"
                 required
+                minLength={6}
                 className="w-full pl-12 pr-4 py-4 bg-slate-100/50 border-2 border-transparent focus:border-indigo-500 focus:bg-white rounded-2xl outline-none transition-all font-semibold text-slate-700"
                 placeholder="Mật khẩu (ít nhất 6 ký tự)"
                 onChange={(e) =>

@@ -1,4 +1,4 @@
-import React, { useContext } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../../context/AuthContext";
 import { motion } from "framer-motion";
@@ -8,12 +8,17 @@ import {
   HiOutlineChartPie,
   HiOutlineUsers,
   HiOutlineArrowRight,
-  HiAcademicCap,
   HiOutlineBookOpen,
 } from "react-icons/hi";
+import axios from "axios";
 
 const TeacherDashboard = () => {
   const { user } = useContext(AuthContext);
+  const [stats, setStats] = useState({
+    totalExams: 0,
+    totalSubmissions: 0,
+    totalStudents: 0,
+  });
   const navigate = useNavigate();
 
   // Animation variants
@@ -29,6 +34,27 @@ const TeacherDashboard = () => {
     hidden: { y: 20, opacity: 0 },
     show: { y: 0, opacity: 1 },
   };
+
+  useEffect(() => {
+    // Fetch thống kê từ server (giả lập API)
+    const fetchStats = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          "https://exam-online-system-p6yp.onrender.com/api/submissions/teacher/stats",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+        setStats(res.data);
+        console.log("Thống kê số lượng học sinh:", res.data.totalStudents);
+      } catch (err) {
+        console.error("Lỗi lấy thống kê:", err);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] p-4 md:p-8">
@@ -78,19 +104,19 @@ const TeacherDashboard = () => {
           {[
             {
               label: "Đề thi đã tạo",
-              value: "12",
+              value: stats.totalExams,
               icon: <HiOutlineCollection />,
               color: "bg-blue-500",
             },
             {
               label: "Lượt làm bài",
-              value: "248",
+              value: stats.totalSubmissions,
               icon: <HiOutlineChartPie />,
               color: "bg-purple-500",
             },
             {
               label: "Tổng học sinh",
-              value: "85",
+              value: stats.totalStudents,
               icon: <HiOutlineUsers />,
               color: "bg-emerald-500",
             },

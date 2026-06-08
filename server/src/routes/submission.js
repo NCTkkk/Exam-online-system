@@ -10,12 +10,20 @@ router.get("/leaderboard/:examId", submission.getLeaderboard);
 
 router.get("/my-results", verifyToken, submission.getMyResults);
 
+// 3. Lấy thống kê cá nhân cho giáo viên
+router.get(
+  "/teacher/stats",
+  verifyToken,
+  isTeacher,
+  submission.getTeacherStats,
+);
+
 // 4. Lấy chi tiết bài nộp
 router.get(
   "/teacher/activity-log",
   verifyToken,
   isTeacher,
-  submission.getActivityLog, // Tên hàm bạn vừa thêm ở trên
+  submission.getActivityLog,
 );
 
 router.put(
@@ -24,9 +32,6 @@ router.put(
   isTeacher,
   submission.gradeSubmission,
 );
-
-// server/routes/submission.js
-router.get("/review/:submissionId", verifyToken, submission.getReview);
 
 // 1. Sửa Route /exam/:examId (Dành cho danh sách bài nộp của giáo viên)
 // Sửa route lấy danh sách bài nộp theo đề thi
