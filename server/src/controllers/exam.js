@@ -8,10 +8,6 @@ const recalculateExamSubmissions = async (exam) => {
     const submissions = await Submission.find({ exam: exam._id });
     if (!submissions || submissions.length === 0) return;
 
-    console.log(
-      `=> [Hệ thống] Phát hiện đáp án thay đổi. Bắt đầu tính lại điểm cho ${submissions.length} bài nộp của đề: "${exam.title}"`,
-    );
-
     // Helper nội bộ tìm câu hỏi nhanh từ cấu trúc đề thi mới nhất (hỗ trợ cả câu hỏi lẻ lẫn bài đọc nhóm)
     const findQuestionInExamObj = (examObj, questionId) => {
       if (!examObj || !examObj.questions || !questionId) return null;
@@ -73,9 +69,6 @@ const recalculateExamSubmissions = async (exam) => {
         await updateUserStats(sub.student);
       }
     }
-    console.log(
-      `✅ [Hệ thống] Đã cập nhật xong toàn bộ điểm số mới cho học sinh.`,
-    );
   } catch (error) {
     console.error("💥 LỖI TRONG recalculateExamSubmissions:", error.message);
   }
@@ -141,7 +134,11 @@ const getMyExams = async (req, res) => {
 
     res.status(200).json(updatedExams);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Lỗi getMyExams:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lấy đề của giáo viên",
+      error: err.message,
+    });
   }
 };
 
@@ -173,7 +170,11 @@ const getAllExamsPublished = async (req, res) => {
 
     res.json(examsWithAttemptCount);
   } catch (err) {
-    res.status(500).json(err);
+    console.error("Lỗi getAllExamsPublished:", err);
+    res.status(500).json({
+      message: "Lỗi server khi lấy danh sách đề thi",
+      error: err.message,
+    });
   }
 };
 

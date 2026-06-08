@@ -20,15 +20,35 @@ import Pagination from "../../components/common/Pagination";
 const ManageExams = () => {
   const [exams, setExams] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchMyExams = async () => {
-      const token = localStorage.getItem("token");
-      const res = await axios.get("http://localhost:5000/api/exams/my-exams", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setExams(res.data);
+      try {
+        setLoading(true);
+        setError("");
+
+        const token = localStorage.getItem("token");
+        const res = await axios.get(
+          "http://localhost:5000/api/exams/my-exams",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        setExams(res.data);
+      } catch (err) {
+        console.error("Lỗi lấy đề thi của giáo viên:", err);
+
+        setError(
+          err.response?.data?.message ||
+            "Lỗi khi lấy đề thi. Vui lòng thử lại sau.",
+        );
+      } finally {
+        setLoading(false);
+      }
     };
     fetchMyExams();
   }, []);

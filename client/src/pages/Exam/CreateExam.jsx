@@ -218,9 +218,10 @@ const CreateExam = () => {
             <HiOutlineClock className="text-indigo-500" />
             <input
               type="number"
+              min={1}
               className="w-10 bg-transparent outline-none text-center"
               value={duration}
-              onChange={(e) => setDuration(e.target.value)}
+              onChange={(e) => setDuration(Number(e.target.value))}
             />
             <span className="text-[10px] uppercase">Phút</span>
           </div>

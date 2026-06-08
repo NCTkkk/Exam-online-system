@@ -3,9 +3,7 @@ import { useContext } from "react";
 import { AuthContext } from "../context/AuthContext";
 
 const ProtectedRoute = ({ children, roleRequired }) => {
-  const { user, loading } = useContext(AuthContext);
-
-  if (loading) return <div>Đang tải...</div>;
+  const { user } = useContext(AuthContext);
 
   if (!user) return <Navigate to="/login" replace />;
 

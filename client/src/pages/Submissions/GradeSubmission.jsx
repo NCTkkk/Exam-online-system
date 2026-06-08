@@ -36,12 +36,6 @@ const GradeSubmission = () => {
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
-        console.log(">>> Dữ liệu bài nộp nhận được:", res.data);
-        console.log(
-          ">>> Tổng điểm của đề thi (totalPoints):",
-          res.data.exam?.totalPoints,
-        );
-
         setSubmission(res.data);
         if (res.data.feedback) setFeedback(res.data.feedback);
 

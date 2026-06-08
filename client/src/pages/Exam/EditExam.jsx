@@ -257,7 +257,8 @@ const EditExam = () => {
                   type="number"
                   className="bg-transparent w-8 font-bold text-center outline-none text-sm"
                   value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
+                  onChange={(e) => setDuration(Number(e.target.value))}
+                  min={1}
                 />
                 <span className="text-[9px] font-black text-slate-400 uppercase">
                   Phút

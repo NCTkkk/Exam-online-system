@@ -23,8 +23,6 @@ const ExamSubmissions = () => {
   const [examTitle, setExamTitle] = useState("");
 
   // --- STATES BỘ LỌC ---
-  const [scoreType, setScoreType] = useState("total"); // total, auto, manual
-  const [filterType, setFilterType] = useState("exact"); // exact, range
   const [exactValue, setExactValue] = useState("");
   const [rangeMin, setRangeMin] = useState("");
   const [rangeMax, setRangeMax] = useState("");
@@ -32,39 +30,85 @@ const ExamSubmissions = () => {
   const [statusFilter, setStatusFilter] = useState("all"); // all, graded, pending
   const [studentSearch, setStudentSearch] = useState("");
   const [extremeFilter, setExtremeFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   const [sortOrder, setSortOrder] = useState("none"); // none, asc (tăng), desc (giảm)
+
+  // useEffect(() => {
+  //   const fetchData = async () => {
+  //     const token = localStorage.getItem("token");
+  //     try {
+  //       // 1. Gọi API lấy danh sách bài nộp
+  //       const resSubmissions = await axios.get(
+  //         `http://localhost:5000/api/submissions/exam/${examId}`,
+  //         { headers: { Authorization: `Bearer ${token}` } },
+  //       );
+  //       setSubmissions(resSubmissions.data);
+
+  //       // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
+  //       const resExam = await axios.get(
+  //         `http://localhost:5000/api/exams/${examId}`,
+  //         { headers: { Authorization: `Bearer ${token}` } },
+  //       );
+  //       setLoading(false);
+  //       setError("");
+  //       setExamTitle(resExam.data.title);
+  //     } catch (err) {
+  //       console.error("Lỗi lấy dữ liệu:", err);
+  //       if (submissions.length > 0) {
+  //         setExamTitle(submissions[0].exam?.title || "Đề thi đã bị xóa");
+  //       } else {
+  //         setExamTitle("Không tìm thấy thông tin đề thi");
+  //       }
+  //     }
+  //   };
+  //   fetchData();
+  // }, [examId]);
+
+  // --- LOGIC LỌC DỮ LIỆU TỔNG HỢP ---
 
   useEffect(() => {
     const fetchData = async () => {
       const token = localStorage.getItem("token");
+      let submissionsData = [];
+
       try {
-        // 1. Gọi API lấy danh sách bài nộp
+        setLoading(true);
+        setError("");
+
         const resSubmissions = await axios.get(
           `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
-        setSubmissions(resSubmissions.data);
 
-        // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
+        submissionsData = resSubmissions.data;
+        setSubmissions(submissionsData);
+
         const resExam = await axios.get(
           `http://localhost:5000/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
+
         setExamTitle(resExam.data.title);
       } catch (err) {
         console.error("Lỗi lấy dữ liệu:", err);
-        if (submissions.length > 0) {
-          setExamTitle(submissions[0].exam?.title || "Đề thi đã bị xóa");
+
+        if (submissionsData.length > 0) {
+          setExamTitle(submissionsData[0].exam?.title || "Đề thi đã bị xóa");
         } else {
           setExamTitle("Không tìm thấy thông tin đề thi");
         }
+
+        setError("Không thể tải đầy đủ dữ liệu bài nộp.");
+      } finally {
+        setLoading(false);
       }
     };
+
     fetchData();
   }, [examId]);
 
-  // --- LOGIC LỌC DỮ LIỆU TỔNG HỢP ---
   const filteredSubmissions = useMemo(() => {
     let result = submissions.filter((s) => {
       // 1. Lọc theo tên học sinh
@@ -117,10 +161,12 @@ const ExamSubmissions = () => {
         (Number(s.scoreAuto) || 0) + (Number(s.scoreManual) || 0);
       const min = rangeMin === "" ? -Infinity : Number(rangeMin);
       const max = rangeMax === "" ? Infinity : Number(rangeMax);
+      if (isNaN(min) || isNaN(max)) return true; // Nếu nhập không phải số, bỏ qua lọc khoảng
+      if (min > max) return true; // Nếu khoảng không hợp lệ, bỏ qua lọc khoảng
       return totalScore >= min && totalScore <= max;
     });
 
-    // 🌟 THÊM LOGIC SẮP XẾP VÀO ĐÂY (TRƯỚC KHI RETURN):
+    // THÊM LOGIC SẮP XẾP VÀO ĐÂY (TRƯỚC KHI RETURN):
     if (sortOrder !== "none") {
       result.sort((a, b) => {
         const scoreA =
@@ -195,6 +241,40 @@ const ExamSubmissions = () => {
     }
   };
 
+  useEffect(() => {
+    jump(1);
+  }, [
+    studentSearch,
+    statusFilter,
+    extremeFilter,
+    rangeMin,
+    rangeMax,
+    sortOrder,
+  ]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-16 w-16 mb-4 mx-auto"></div>
+          <h2 className="text-xl font-bold text-gray-700">
+            Đang tải dữ liệu...
+          </h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-red-500">{error}</h2>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="py-8 px-12 max-w-7xl mx-auto bg-slate-50 min-h-screen">
       {/* Header Section */}
@@ -210,6 +290,7 @@ const ExamSubmissions = () => {
         </div>
         <button
           onClick={handleExportExcel}
+          disabled={filteredSubmissions.length === 0}
           className="bg-emerald-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-100 active:scale-95"
         >
           <HiOutlineDownload size={20} />
