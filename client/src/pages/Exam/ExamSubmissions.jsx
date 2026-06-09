@@ -41,14 +41,14 @@ const ExamSubmissions = () => {
   //     try {
   //       // 1. Gọi API lấy danh sách bài nộp
   //       const resSubmissions = await axios.get(
-  //         `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+  //         `http://localhost:5000/api/submissions/exam/${examId}`,
   //         { headers: { Authorization: `Bearer ${token}` } },
   //       );
   //       setSubmissions(resSubmissions.data);
 
   //       // 2. Gọi thêm API lấy thông tin Exam để lấy tiêu đề chuẩn
   //       const resExam = await axios.get(
-  //         `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
+  //         `http://localhost:5000/api/exams/${examId}`,
   //         { headers: { Authorization: `Bearer ${token}` } },
   //       );
   //       setLoading(false);
@@ -78,7 +78,7 @@ const ExamSubmissions = () => {
         setError("");
 
         const resSubmissions = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/exam/${examId}`,
+          `http://localhost:5000/api/submissions/exam/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -86,7 +86,7 @@ const ExamSubmissions = () => {
         setSubmissions(submissionsData);
 
         const resExam = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${examId}`,
+          `http://localhost:5000/api/exams/${examId}`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -221,7 +221,7 @@ const ExamSubmissions = () => {
       try {
         const token = localStorage.getItem("token");
         await axios.delete(
-          `https://exam-online-system-p6yp.onrender.com/api/submissions/${submissionId}`,
+          `http://localhost:5000/api/submissions/${submissionId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           },

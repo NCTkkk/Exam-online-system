@@ -31,12 +31,9 @@ const EditExam = () => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setTitle(res.data.title);
         setDuration(res.data.duration);
         setSubject(res.data.subject || "");
@@ -173,7 +170,7 @@ const EditExam = () => {
     try {
       const token = localStorage.getItem("token");
       await axios.put(
-        `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
+        `http://localhost:5000/api/exams/${id}`,
         { title, subject, duration, maxAttempts, questions },
         { headers: { Authorization: `Bearer ${token}` } },
       );

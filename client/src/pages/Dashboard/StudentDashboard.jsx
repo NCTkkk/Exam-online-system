@@ -34,7 +34,7 @@ const StudentDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/users/profile-stats ",
+          "http://localhost:5000/api/users/profile-stats ",
           {
             headers: { Authorization: `Bearer ${token}` },
           },

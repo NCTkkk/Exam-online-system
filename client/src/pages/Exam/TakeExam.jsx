@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -60,18 +60,20 @@ const TakeExam = () => {
     const data = {
       examId: id,
       answers: formattedAnswers,
-      timeSpent: examRef.current.duration * 60 - timeLeftRef.current,
+      // timeSpent: examRef.current.duration * 60 - timeLeftRef.current,
+
+      // Đảm bảo timeSpent luôn là số dương, tránh trường hợp lỗi đồng hồ khiến timeLeft âm
+      timeSpent: Math.max(
+        0,
+        examRef.current.duration * 60 - timeLeftRef.current,
+      ),
     };
 
     try {
       // Sử dụng axios để nộp bài
-      await axios.post(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
-        data,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
+      await axios.post(`http://localhost:5000/api/submissions/submit`, data, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       console.log("Auto-submitted due to exit");
     } catch (e) {
       console.error("Auto-submit failed", e);
@@ -83,12 +85,9 @@ const TakeExam = () => {
     const fetchExam = async () => {
       const token = localStorage.getItem("token");
       try {
-        const res = await axios.get(
-          `https://exam-online-system-p6yp.onrender.com/api/exams/${id}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          },
-        );
+        const res = await axios.get(`http://localhost:5000/api/exams/${id}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
 
         setExam(res.data);
         setTimeLeft(res.data.duration * 60);
@@ -99,26 +98,22 @@ const TakeExam = () => {
       }
     };
     if (id) fetchExam();
-
-    const handleVisibility = () => {
-      if (document.hidden) console.warn("User tab switched");
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-    return () =>
-      document.removeEventListener("visibilitychange", handleVisibility);
   }, [id, navigate]);
 
-  // 2. Logic Timer
   useEffect(() => {
-    if (timeLeft > 0) {
-      timerRef.current = setInterval(
-        () => setTimeLeft((prev) => prev - 1),
-        1000,
-      );
-    } else if (timeLeft === 0 && exam && !isSubmitting) {
+    if (!exam || isSubmitting) return;
+
+    timeRef.current = setInterval(() => {
+      setTimeLeft((prev) => Math.max(prev - 1, 0));
+    }, 1000);
+
+    return () => clearInterval(timeRef.current);
+  }, [exam, isSubmitting]);
+
+  useEffect(() => {
+    if (timeLeft === 0 && exam && !isSubmitting) {
       autoSubmitExam();
     }
-    return () => clearInterval(timerRef.current);
   }, [timeLeft, exam, isSubmitting]);
 
   // 3. Logic lắng nghe sự kiện chuyển Tab
@@ -177,7 +172,8 @@ const TakeExam = () => {
   };
 
   const processSubmit = async () => {
-    if (isSubmitting) return;
+    // Tránh nộp nhiều lần nếu người dùng click liên tục hoặc nếu đã tự động nộp khi hết giờ
+    if (isSubmitting || !exam) return;
     setIsSubmitting(true);
     isSubmittingRef.current = true;
     clearInterval(timerRef.current);
@@ -190,11 +186,14 @@ const TakeExam = () => {
 
     try {
       await axios.post(
-        `https://exam-online-system-p6yp.onrender.com/api/submissions/submit`,
+        `http://localhost:5000/api/submissions/submit`,
         {
           examId: id,
           answers: formattedAnswers,
-          timeSpent: exam.duration * 60 - timeLeft,
+          // timeSpent: exam.duration * 60 - timeLeft,
+
+          // Đảm bảo timeSpent luôn là số dương, tránh trường hợp lỗi đồng hồ khiến timeLeft âm
+          timeSpent: Math.max(0, exam.duration * 60 - timeLeft),
         },
         { headers: { Authorization: `Bearer ${token}` } },
       );
@@ -208,8 +207,35 @@ const TakeExam = () => {
     }
   };
 
+  const getTotalQuestionCount = useMemo(() => {
+    if (!exam?.questions) return 0;
+
+    return exam.questions.reduce((total, q) => {
+      if (q.type === "instruction") return total;
+
+      if (q.type === "passage_group") {
+        return total + (q.subQuestions?.length || 0);
+      }
+      return total + 1;
+    }, 0);
+  }, [exam]);
+
   const submitExam = async () => {
-    if (!window.confirm("Bạn có chắc chắn muốn nộp bài?")) return;
+    const totalQuestions = getTotalQuestionCount;
+    const answeredCount = Object.keys(answers).filter((key) => {
+      const value = answers[key];
+      return String(value || "").trim() !== "";
+    }).length;
+
+    const unansweredCount = totalQuestions - answeredCount;
+
+    const message =
+      unansweredCount > 0
+        ? `Bạn còn ${unansweredCount} câu chưa trả lời. Bạn vẫn muốn nộp bài?`
+        : "Bạn có chắc chắn muốn nộp bài?";
+
+    if (!window.confirm(message)) return;
+
     await processSubmit();
   };
 

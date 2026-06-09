@@ -41,7 +41,7 @@ const TeacherDashboard = () => {
       try {
         const token = localStorage.getItem("token");
         const res = await axios.get(
-          "https://exam-online-system-p6yp.onrender.com/api/submissions/teacher/stats",
+          "http://localhost:5000/api/submissions/teacher/stats",
           {
             headers: { Authorization: `Bearer ${token}` },
           },
